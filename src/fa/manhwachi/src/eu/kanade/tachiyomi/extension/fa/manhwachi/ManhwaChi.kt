@@ -15,11 +15,11 @@ import keiyoushi.utils.getArrayOrNull
 import keiyoushi.utils.getIntOrNull
 import keiyoushi.utils.getObjectOrNull
 import keiyoushi.utils.parseAs
-import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
