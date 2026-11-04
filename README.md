@@ -23,7 +23,7 @@ https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json
 - `ALIAS`
 - `KEY_PASSWORD`
 
-در Pull Requestها build و lint با کلید debug موقت انجام می‌شود؛ هیچ مخزن عمومی از آن خروجی منتشر نمی‌شود. انتشار از `main` یا اجرای دستی workflow بدون هر چهار Secret متوقف خواهد شد.
+در Pull Requestها build و lint با کلید debug موقت انجام می‌شود؛ هیچ مخزن عمومی از آن خروجی منتشر نمی‌شود. انتشار فقط از `main` (push یا اجرای دستی workflow روی همین شاخه) انجام می‌شود و بدون هر چهار Secret متوقف خواهد شد؛ اجرای دستی روی شاخه‌های دیگر فقط build آزمایشی debug است.
 
 ## افزونه‌ها
 
