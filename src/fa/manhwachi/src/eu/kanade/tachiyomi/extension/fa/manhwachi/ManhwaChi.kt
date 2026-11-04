@@ -11,10 +11,17 @@ import keiyoushi.network.Fetch
 import keiyoushi.network.get
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
+import keiyoushi.utils.getArrayOrNull
+import keiyoushi.utils.getIntOrNull
+import keiyoushi.utils.getObjectOrNull
+import keiyoushi.utils.parseAs
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 @Source
 abstract class ManhwaChi : KeiSource() {
@@ -67,29 +74,40 @@ abstract class ManhwaChi : KeiSource() {
     ): SMangaUpdate {
         val document = client.get(getMangaUrl(manga), Fetch.DOCUMENT).asJsoup()
         val details = if (fetchDetails) parseDetails(document) else SManga.create()
-        val chapterList = if (fetchChapters) {
-            document.select("#episodeList a.episode-card").mapNotNull { element ->
-                if (element.isLockedChapter()) return@mapNotNull null
-                val href = element.absUrl("href")
-                if (href.isBlank()) return@mapNotNull null
-                SChapter.create().apply {
-                    setUrlWithoutDomain(href)
-                    name = element.selectFirst(".mx-ep-t")?.text()?.trim().orEmpty()
-                    if (name.isBlank()) name = element.attr("data-num").let { "چپتر $it" }
-                    date_upload = 0L
-                }
-            }
-        } else {
-            emptyList()
-        }
+        val chapterList = if (fetchChapters) fetchPublicChapters(manga) else emptyList()
         return SMangaUpdate(details, chapterList)
     }
 
-    private fun Element.isLockedChapter(): Boolean {
-        if (attr("data-free") == "0") return true
-        if (selectFirst(".mx-lock, .lock-pill, .locked, .lock-icon") != null) return true
-        val badge = selectFirst(".mx-st")?.text()?.trim().orEmpty()
-        return badge.contains("قفل") || badge.contains("اشتراکی") || badge.contains("ویژه")
+    private suspend fun fetchPublicChapters(manga: SManga): List<SChapter> {
+        val slug = manga.url.substringAfter("/comic/", "").substringBefore('?').substringBefore('/')
+        if (slug.isBlank()) return emptyList()
+
+        // The detail HTML only renders four chapters. The site's public data.json
+        // contains the complete chapter catalog and each chapter's free flag.
+        val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
+        val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptyList()
+
+        // This public endpoint reports per-user time locks even for anonymous visitors.
+        // Fail closed if access state cannot be checked; never expose a locked chapter.
+        val access = client.get("$baseUrl/api/access/chapters/$slug".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
+        val locked = access.getArrayOrNull("locked")
+            ?.mapNotNull { (it as? JsonObject)?.getIntOrNull("num") }
+            ?.toSet()
+            ?: throw IllegalStateException("وضعیت دسترسی فصل‌ها قابل بررسی نیست؛ برای جلوگیری از نمایش فصل قفل‌شده دوباره تلاش کنید.")
+
+        return episodes.mapNotNull { element ->
+            val episode = element as? JsonObject ?: return@mapNotNull null
+            val number = episode.getIntOrNull("num") ?: return@mapNotNull null
+            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull == "true"
+            if (!isFree || number in locked) return@mapNotNull null
+
+            SChapter.create().apply {
+                setUrlWithoutDomain("$baseUrl/reader.html?slug=$slug&ch=$number")
+                name = "چپتر $number"
+                chapter_number = number.toFloat()
+                date_upload = 0L
+            }
+        }.sortedByDescending { it.chapter_number }
     }
 
     private fun parseDetails(document: Document) = SManga.create().apply {
