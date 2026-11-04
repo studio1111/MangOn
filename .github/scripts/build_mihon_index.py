@@ -115,12 +115,12 @@ def build_index(
         },
     }
     (output_dir / "repo.json").write_text(
-        json.dumps(repo_descriptor, ensure_ascii=False, indent=2) + "\\n",
+        json.dumps(repo_descriptor, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     (output_dir / "README.txt").write_text(
-        "MangOn Mihon extension repository\\n"
-        "Add this repository: https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json\\n",
+        "MangOn Mihon extension repository\n"
+        "Add this repository: https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json\n",
         encoding="utf-8",
     )
     return index
