@@ -108,7 +108,9 @@ jobs:
           ALIAS: ${{ secrets.ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon
+          set -euo pipefail
+          test -s signingkey.jks || { echo "::error::Stable signing keystore is missing from the upstream Gradle root"; exit 1; }
+          ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon --no-configuration-cache
 
       - name: Verify APK and extension JAR signatures
         if: github.ref == 'refs/heads/main'
@@ -117,15 +119,28 @@ jobs:
           EXPECTED_FINGERPRINT: ${{ steps.signing.outputs.signing_key }}
         run: |
           set -euo pipefail
-          apk="$(find src/fa/manhwachi/build/outputs/apk/release -maxdepth 1 -name '*.apk' -print -quit)"
-          jar="$(find src/fa/manhwachi/build/outputs/jar/release -maxdepth 1 -name '*.jar' -print -quit)"
-          test -n "$apk" && test -n "$jar"
+          mapfile -t apks < <(find src/fa/manhwachi/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print | sort)
+          mapfile -t jars < <(find src/fa/manhwachi/build/outputs/jar/release -maxdepth 1 -type f -name '*.jar' -print | sort)
+          [[ "${#apks[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release APK, found ${#apks[@]}"; printf '%s\\n' "${apks[@]}"; exit 1; }
+          [[ "${#jars[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release JAR, found ${#jars[@]}"; printf '%s\\n' "${jars[@]}"; exit 1; }
+          apk="${apks[0]}"
+          jar="${jars[0]}"
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          test -x "$apksigner"
-          apk_fingerprint="$("$apksigner" verify --print-certs "$apk" | awk -F': ' '/certificate SHA-256 digest:/ {print tolower($2); exit}' | tr -d ':')"
-          jar_fingerprint="$(keytool -printcert -jarfile "$jar" | awk -F': ' '/SHA256:/ {print tolower($2); exit}' | tr -d ':')"
-          test "$apk_fingerprint" = "$EXPECTED_FINGERPRINT" || { echo "::error::APK certificate does not match repository signing key"; exit 1; }
-          test "$jar_fingerprint" = "$EXPECTED_FINGERPRINT" || { echo "::error::JAR certificate does not match repository signing key"; exit 1; }
+          test -x "$apksigner" || { echo "::error::Android apksigner was not found"; exit 1; }
+          [[ "$EXPECTED_FINGERPRINT" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::Expected signing fingerprint is malformed"; exit 1; }
+
+          apk_cert_output="$("$apksigner" verify --verbose --print-certs "$apk")"
+          jar_cert_output="$(keytool -printcert -jarfile "$jar")"
+          apk_fingerprint="$(printf '%s\\n' "$apk_cert_output" | sed -nE 's/.*certificate SHA-256 digest:[[:space:]]*([[:xdigit:]:]+).*/\\1/p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          jar_fingerprint="$(printf '%s\\n' "$jar_cert_output" | sed -nE 's/^[[:space:]]*SHA256:[[:space:]]*([[:xdigit:]:]+).*/\\1/p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+
+          echo "Expected signing certificate: $EXPECTED_FINGERPRINT"
+          echo "APK signing certificate: ${apk_fingerprint:-NOT_FOUND}"
+          echo "JAR signing certificate: ${jar_fingerprint:-NOT_FOUND}"
+          failures=0
+          [[ "$apk_fingerprint" =~ ^[0-9a-f]{64}$ ]] && [[ "$apk_fingerprint" == "$EXPECTED_FINGERPRINT" ]] || { echo "::error::APK certificate is missing, malformed, or does not match the repository key"; failures=$((failures + 1)); }
+          [[ "$jar_fingerprint" =~ ^[0-9a-f]{64}$ ]] && [[ "$jar_fingerprint" == "$EXPECTED_FINGERPRINT" ]] || { echo "::error::JAR certificate is missing, malformed, or does not match the repository key"; failures=$((failures + 1)); }
+          (( failures == 0 )) || exit 1
           echo "APK and JAR are signed by the repository certificate."
 
       - name: Upload release bundle
