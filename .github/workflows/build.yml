@@ -40,7 +40,16 @@ jobs:
         run: |
           mkdir -p upstream/src/fa
           cp -a mangon/src/fa/. upstream/src/fa/
-          python -c 'from pathlib import Path; p=Path("upstream/settings.gradle.kts"); s=p.read_text(); old="\\nloadAllIndividualExtensions()\\n"; new="\\nloadIndividualExtension(\\"fa\\", \\"manhwachi\\")\\n"; assert old in s, "Keiyoushi settings layout changed"; p.write_text(s.replace(old,new,1))'
+          python - <<'PY'
+          from pathlib import Path
+          settings = Path("upstream/settings.gradle.kts")
+          content = settings.read_text()
+          old = "loadAllIndividualExtensions()"
+          new = 'loadIndividualExtension("fa", "manhwachi")'
+          if old not in content:
+              raise SystemExit("Keiyoushi settings layout changed")
+          settings.write_text(content.replace(old, new, 1))
+          PY
 
       - name: Set up Java
         uses: actions/setup-java@v4
