@@ -38,6 +38,10 @@ SHA1: 00:11
         with self.assertRaisesRegex(ValueError, "JAR"):
             verify_fingerprints(EXPECTED, [EXPECTED], [OTHER])
 
+    def test_rejects_missing_jar_digest(self):
+        with self.assertRaisesRegex(ValueError, "No valid JAR SHA-256"):
+            extract_jar_fingerprints("Owner: CN=Release\\nSHA1: 00:11")
+
     def test_rejects_malformed_expected_fingerprint(self):
         with self.assertRaisesRegex(ValueError, "expected signing fingerprint"):
             verify_fingerprints("invalid", [EXPECTED], [EXPECTED])
