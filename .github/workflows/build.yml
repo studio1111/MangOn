@@ -175,15 +175,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          cp -a dist/repo /tmp/mangon-publish
           git fetch origin repo || true
           if git show-ref --verify --quiet refs/remotes/origin/repo; then
             git switch -C repo --track origin/repo
           else
             git switch --orphan repo
-            git rm -rf . >/dev/null 2>&1 || true
           fi
           git rm -rf . >/dev/null 2>&1 || true
-          cp -a dist/repo/. .
+          git clean -fdx
+          cp -a /tmp/mangon-publish/. .
           git add -A
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
