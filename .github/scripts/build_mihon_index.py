@@ -106,9 +106,21 @@ def build_index(
     (output_dir / "index.pb").write_bytes(
         gzip.compress(index.SerializeToString(deterministic=True), compresslevel=9, mtime=0)
     )
+    repo_descriptor = {
+        "index_v2": "https://raw.githubusercontent.com/studio1111/MangOn/repo/index.pb",
+        "meta": {
+            "name": "MangOn",
+            "website": "https://github.com/studio1111/MangOn",
+            "signingKeyFingerprint": signing_key,
+        },
+    }
+    (output_dir / "repo.json").write_text(
+        json.dumps(repo_descriptor, ensure_ascii=False, indent=2) + "\\n",
+        encoding="utf-8",
+    )
     (output_dir / "README.txt").write_text(
-        "MangOn Mihon extension repository\n"
-        "Repository URL: https://raw.githubusercontent.com/studio1111/MangOn/repo/index.pb\n",
+        "MangOn Mihon extension repository\\n"
+        "Add this repository: https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json\\n",
         encoding="utf-8",
     )
     return index
