@@ -72,7 +72,7 @@ jobs:
           python -m unittest discover -s mangon/.github/scripts -p 'test_*.py' -v
 
       - name: Configure and verify stable signing key
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main'
         id: signing
         working-directory: upstream
         env:
@@ -95,13 +95,13 @@ jobs:
           echo "Stable signing certificate validated; SHA-256 fingerprint: $fingerprint"
 
       - name: Build and lint release (PR debug validation)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
         working-directory: upstream
         run: |
           ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon
 
       - name: Build and lint release (signed publish)
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main'
         working-directory: upstream
         env:
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
@@ -111,7 +111,7 @@ jobs:
           ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon
 
       - name: Verify APK and extension JAR signatures
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main'
         working-directory: upstream
         env:
           EXPECTED_FINGERPRINT: ${{ steps.signing.outputs.signing_key }}
@@ -145,7 +145,7 @@ jobs:
 
   publish:
     needs: build
-    if: github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
