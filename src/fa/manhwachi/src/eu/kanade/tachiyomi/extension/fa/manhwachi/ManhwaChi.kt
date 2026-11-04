@@ -106,8 +106,7 @@ abstract class ManhwaChi : KeiSource() {
         return images.distinct().mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
     }
 
-    private fun org.jsoup.nodes.Element.absUrlOrRaw(href: String): String =
-        absUrl("data-link").takeIf(String::isNotBlank)
-            ?: absUrl("href").takeIf(String::isNotBlank)
-            ?: href
+    private fun org.jsoup.nodes.Element.absUrlOrRaw(href: String): String = absUrl("data-link").takeIf(String::isNotBlank)
+        ?: absUrl("href").takeIf(String::isNotBlank)
+        ?: href
 }
