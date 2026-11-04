@@ -210,8 +210,11 @@ jobs:
           python - <<'PY'
           import gzip
           import json
+          import os
           import subprocess
+          import sys
           from pathlib import Path
+          sys.path.insert(0, ".github/scripts")
           import index_pb2
 
           descriptor = json.loads(Path("/tmp/repo.json").read_text(encoding="utf-8"))
@@ -233,7 +236,7 @@ jobs:
               assert asset_url.startswith("https://raw.githubusercontent.com/studio1111/MangOn/repo/")
               subprocess.run(
                   ["curl", "--fail", "--silent", "--show-error", "--retry", "5",
-                   "--retry-delay", "2", asset_url + "?cachebust=" + __import__("os").environ["GITHUB_SHA"],
+                   "--retry-delay", "2", asset_url + "?cachebust=" + os.environ["GITHUB_SHA"],
                    "--output", "/dev/null"],
                   check=True,
               )
