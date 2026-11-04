@@ -60,10 +60,8 @@ def build_index(
     (apk_dir / apk_name).write_bytes(apk_files[0].read_bytes())
     (jar_dir / jar_name).write_bytes(jar_files[0].read_bytes())
 
-    module = info.get("module", "fa.manhwachi").replace(".", "/")
-    upstream_icon = f"https://raw.githubusercontent.com/keiyoushi/extensions-source/ee661f5233b346559fbdd53993d447c318c5aef0/core/src/main/res/mipmap-xhdpi/ic_launcher.png"
-    icon_path = Path(__file__).resolve().parents[2] / "src" / module / "res/mipmap-xhdpi/ic_launcher.png"
-    resolved_icon = icon_url if icon_path.is_file() else upstream_icon
+    upstream_icon = "https://raw.githubusercontent.com/keiyoushi/extensions-source/ee661f5233b346559fbdd53993d447c318c5aef0/core/src/main/res/mipmap-xhdpi/ic_launcher.png"
+    resolved_icon = icon_url or upstream_icon
 
     extension = index_pb2.Extension(
         name=info["name"],
