@@ -139,6 +139,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Remove signing keystore from runner
+        if: always()
+        run: rm -f upstream/signingkey.jks
+
   publish:
     needs: build
     if: github.event_name != 'pull_request'
