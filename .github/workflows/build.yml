@@ -121,27 +121,15 @@ jobs:
           set -euo pipefail
           mapfile -t apks < <(find src/fa/manhwachi/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print | sort)
           mapfile -t jars < <(find src/fa/manhwachi/build/outputs/jar/release -maxdepth 1 -type f -name '*.jar' -print | sort)
-          [[ "${#apks[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release APK, found ${#apks[@]}"; printf '%s\\n' "${apks[@]}"; exit 1; }
-          [[ "${#jars[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release JAR, found ${#jars[@]}"; printf '%s\\n' "${jars[@]}"; exit 1; }
-          apk="${apks[0]}"
-          jar="${jars[0]}"
+          [[ "${#apks[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release APK, found ${#apks[@]}"; exit 1; }
+          [[ "${#jars[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release JAR, found ${#jars[@]}"; exit 1; }
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$apksigner" || { echo "::error::Android apksigner was not found"; exit 1; }
-          [[ "$EXPECTED_FINGERPRINT" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::Expected signing fingerprint is malformed"; exit 1; }
-
-          apk_cert_output="$("$apksigner" verify --verbose --print-certs "$apk")"
-          jar_cert_output="$(keytool -printcert -jarfile "$jar")"
-          apk_fingerprint="$(printf '%s\\n' "$apk_cert_output" | sed -nE 's/.*certificate SHA-256 digest:[[:space:]]*([[:xdigit:]:]+).*/\\1/p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
-          jar_fingerprint="$(printf '%s\\n' "$jar_cert_output" | sed -nE 's/^[[:space:]]*SHA256:[[:space:]]*([[:xdigit:]:]+).*/\\1/p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
-
-          echo "Expected signing certificate: $EXPECTED_FINGERPRINT"
-          echo "APK signing certificate: ${apk_fingerprint:-NOT_FOUND}"
-          echo "JAR signing certificate: ${jar_fingerprint:-NOT_FOUND}"
-          failures=0
-          [[ "$apk_fingerprint" =~ ^[0-9a-f]{64}$ ]] && [[ "$apk_fingerprint" == "$EXPECTED_FINGERPRINT" ]] || { echo "::error::APK certificate is missing, malformed, or does not match the repository key"; failures=$((failures + 1)); }
-          [[ "$jar_fingerprint" =~ ^[0-9a-f]{64}$ ]] && [[ "$jar_fingerprint" == "$EXPECTED_FINGERPRINT" ]] || { echo "::error::JAR certificate is missing, malformed, or does not match the repository key"; failures=$((failures + 1)); }
-          (( failures == 0 )) || exit 1
-          echo "APK and JAR are signed by the repository certificate."
+          python ../mangon/.github/scripts/verify_release_signatures.py \
+            --expected "$EXPECTED_FINGERPRINT" \
+            --apk "${apks[0]}" \
+            --jar "${jars[0]}" \
+            --apksigner "$apksigner"
 
       - name: Upload release bundle
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
