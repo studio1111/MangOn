@@ -31,7 +31,7 @@ def build_index(
 ) -> index_pb2.Index:
     if not FINGERPRINT_RE.fullmatch(signing_key):
         raise ValueError("signing_key must be a 64-character lowercase SHA-256 certificate fingerprint")
-    if not base_url.startswith("https://") or not icon_url.startswith("https://"):
+    if not base_url.startswith("https://") or (icon_url and not icon_url.startswith("https://")):
         raise ValueError("Repository and icon URLs must use HTTPS")
 
     metadata_files = sorted(artifacts_dir.rglob("keiyoushi-source-info.json"))
