@@ -1,0 +1,33 @@
+{
+  "name": "MangOn",
+  "badgeLabel": "MANGON",
+  "signingKey": "2922be3a3774a0e1dfb8ff1fc75e73e4637703d3243d7ddc7f1fdbcfd3b070dd",
+  "contact": {
+    "website": "https://github.com/studio1111/MangOn"
+  },
+  "extensionList": {
+    "extensions": [
+      {
+        "name": "ManhwaChi",
+        "packageName": "eu.kanade.tachiyomi.extension.fa.manhwachi",
+        "resources": {
+          "apkUrl": "https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.manhwachi-v1.6.1.apk",
+          "iconUrl": "https://raw.githubusercontent.com/keiyoushi/extensions-source/ee661f5233b346559fbdd53993d447c318c5aef0/core/src/main/res/mipmap-xhdpi/ic_launcher.png",
+          "jarUrl": "https://raw.githubusercontent.com/studio1111/MangOn/repo/jar/tachiyomi-fa.manhwachi-v1.6.1.jar"
+        },
+        "extensionLib": "1.6",
+        "versionCode": "106001",
+        "versionName": "1.6.1",
+        "contentWarning": "CONTENT_WARNING_SAFE",
+        "sources": [
+          {
+            "id": "418561782061176474",
+            "name": "ManhwaChi",
+            "language": "fa",
+            "homeUrl": "https://manhwachi.ir"
+          }
+        ]
+      }
+    ]
+  }
+}
