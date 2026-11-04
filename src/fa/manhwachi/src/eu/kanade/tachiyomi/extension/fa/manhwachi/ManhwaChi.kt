@@ -14,6 +14,7 @@ import keiyoushi.utils.asJsoup
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 
 @Source
 abstract class ManhwaChi : KeiSource() {
@@ -68,8 +69,7 @@ abstract class ManhwaChi : KeiSource() {
         val details = if (fetchDetails) parseDetails(document) else SManga.create()
         val chapterList = if (fetchChapters) {
             document.select("#episodeList a.episode-card").mapNotNull { element ->
-                // The source marks locked episodes with a lock overlay and a countdown label.
-                if (element.selectFirst(".mx-lock, .lock-pill") != null) return@mapNotNull null
+                if (element.isLockedChapter()) return@mapNotNull null
                 val href = element.absUrl("href")
                 if (href.isBlank()) return@mapNotNull null
                 SChapter.create().apply {
@@ -83,6 +83,13 @@ abstract class ManhwaChi : KeiSource() {
             emptyList()
         }
         return SMangaUpdate(details, chapterList)
+    }
+
+    private fun Element.isLockedChapter(): Boolean {
+        if (attr("data-free") == "0") return true
+        if (selectFirst(".mx-lock, .lock-pill, .locked, .lock-icon") != null) return true
+        val badge = selectFirst(".mx-st")?.text()?.trim().orEmpty()
+        return badge.contains("قفل") || badge.contains("اشتراکی") || badge.contains("ویژه")
     }
 
     private fun parseDetails(document: Document) = SManga.create().apply {
@@ -106,7 +113,7 @@ abstract class ManhwaChi : KeiSource() {
         return images.distinct().mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
     }
 
-    private fun org.jsoup.nodes.Element.absUrlOrRaw(href: String): String = absUrl("data-link").takeIf(String::isNotBlank)
+    private fun Element.absUrlOrRaw(href: String): String = absUrl("data-link").takeIf(String::isNotBlank)
         ?: absUrl("href").takeIf(String::isNotBlank)
         ?: href
 }
