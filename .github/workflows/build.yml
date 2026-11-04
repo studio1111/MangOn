@@ -1,4 +1,4 @@
-name: Build MangOn extensions
+name: Build and publish MangOn Mihon repository
 
 on:
   push:
@@ -6,23 +6,27 @@ on:
     paths:
       - "src/**"
       - ".github/workflows/build.yml"
+      - ".github/scripts/**"
   pull_request:
     paths:
       - "src/**"
       - ".github/workflows/build.yml"
+      - ".github/scripts/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: mangon-build-${{ github.ref }}
+  group: mangon-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
+    outputs:
+      signing_key: ${{ steps.signing.outputs.signing_key }}
     steps:
       - name: Checkout MangOn
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,25 +66,39 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
-      - name: Configure stable extension signing (optional)
+      - name: Configure and verify stable signing key
+        id: signing
+        working-directory: upstream
         env:
           SIGNING_KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_B64 }}
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
           ALIAS: ${{ secrets.ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$SIGNING_KEYSTORE_B64" ]; then
-            test -n "$KEY_STORE_PASSWORD" || { echo "KEY_STORE_PASSWORD secret is required with SIGNING_KEYSTORE_B64"; exit 1; }
-            test -n "$ALIAS" || { echo "ALIAS secret is required with SIGNING_KEYSTORE_B64"; exit 1; }
-            test -n "$KEY_PASSWORD" || { echo "KEY_PASSWORD secret is required with SIGNING_KEYSTORE_B64"; exit 1; }
-            printf '%s' "$SIGNING_KEYSTORE_B64" | base64 --decode > upstream/signingkey.jks
-            chmod 600 upstream/signingkey.jks
-            echo "Stable signing keystore configured."
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            if [ -z "${SIGNING_KEYSTORE_B64:-}" ]; then
+              echo "PR validation uses the upstream temporary debug key; repository publishing is disabled for pull requests."
+              exit 0
+            fi
           else
-            echo "No stable signing keystore configured; the upstream build uses an ephemeral debug signing key."
+            test -n "${SIGNING_KEYSTORE_B64:-}" || { echo "::error::SIGNING_KEYSTORE_B64 is required for publishing"; exit 1; }
+            test -n "${KEY_STORE_PASSWORD:-}" || { echo "::error::KEY_STORE_PASSWORD is required for publishing"; exit 1; }
+            test -n "${ALIAS:-}" || { echo "::error::ALIAS is required for publishing"; exit 1; }
+            test -n "${KEY_PASSWORD:-}" || { echo "::error::KEY_PASSWORD is required for publishing"; exit 1; }
           fi
 
-      - name: Build and lint
+          if [ -n "${SIGNING_KEYSTORE_B64:-}" ]; then
+            printf '%s' "$SIGNING_KEYSTORE_B64" | base64 --decode > signingkey.jks
+            chmod 600 signingkey.jks
+            keytool -list -keystore signingkey.jks -storepass "$KEY_STORE_PASSWORD" -alias "$ALIAS" >/dev/null
+            fingerprint="$(keytool -exportcert -keystore signingkey.jks -storepass "$KEY_STORE_PASSWORD" -alias "$ALIAS" | sha256sum | awk '{print tolower($1)}')"
+            [[ "$fingerprint" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::Could not derive SHA-256 certificate fingerprint"; exit 1; }
+            echo "signing_key=$fingerprint" >> "$GITHUB_OUTPUT"
+            echo "Stable signing certificate validated; SHA-256 fingerprint: $fingerprint"
+          fi
+
+      - name: Build and lint release
         working-directory: upstream
         env:
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
@@ -89,10 +107,103 @@ jobs:
         run: |
           ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon
 
-      - name: Upload APK
+      - name: Verify APK and extension JAR signatures
+        if: github.event_name != 'pull_request'
+        working-directory: upstream
+        env:
+          EXPECTED_FINGERPRINT: ${{ steps.signing.outputs.signing_key }}
+        run: |
+          set -euo pipefail
+          apk="$(find src/fa/manhwachi/build/outputs/apk/release -maxdepth 1 -name '*.apk' -print -quit)"
+          jar="$(find src/fa/manhwachi/build/outputs/jar/release -maxdepth 1 -name '*.jar' -print -quit)"
+          test -n "$apk" && test -n "$jar"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$apksigner"
+          apk_fingerprint="$("$apksigner" verify --print-certs "$apk" | awk -F': ' '/certificate SHA-256 digest:/ {print tolower($2); exit}' | tr -d ':')"
+          jar_fingerprint="$(keytool -printcert -jarfile "$jar" | awk -F': ' '/SHA256:/ {print tolower($2); exit}' | tr -d ':')"
+          test "$apk_fingerprint" = "$EXPECTED_FINGERPRINT" || { echo "::error::APK certificate does not match repository signing key"; exit 1; }
+          test "$jar_fingerprint" = "$EXPECTED_FINGERPRINT" || { echo "::error::JAR certificate does not match repository signing key"; exit 1; }
+          echo "APK and JAR are signed by the repository certificate."
+
+      - name: Upload release bundle
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: mangon-manhwachi-apk
-          path: upstream/src/fa/manhwachi/build/outputs/apk/release/*.apk
+          name: mangon-release-bundle
+          path: |
+            upstream/src/fa/manhwachi/build/keiyoushi-source-info.json
+            upstream/src/fa/manhwachi/build/outputs/apk/release/*.apk
+            upstream/src/fa/manhwachi/build/outputs/jar/release/*.jar
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
+
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout MangOn
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Download signed release bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: mangon-release-bundle
+          path: artifacts
+
+      - name: Test and generate Mihon repository index
+        env:
+          SIGNING_KEY: ${{ needs.build.outputs.signing_key }}
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input "protobuf==7.35.1"
+          python -m unittest discover -s .github/scripts -p 'test_*.py' -v
+          python .github/scripts/build_mihon_index.py --artifacts-dir artifacts --output-dir dist/repo --signing-key "$SIGNING_KEY"
+
+      - name: Publish static repository branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin repo || true
+          if git show-ref --verify --quiet refs/remotes/origin/repo; then
+            git switch -C repo --track origin/repo
+          else
+            git switch --orphan repo
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          git rm -rf . >/dev/null 2>&1 || true
+          cp -a dist/repo/. .
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            echo "Repository index and assets are unchanged."
+            exit 0
+          fi
+          git commit -m "Publish MangOn Mihon repository"
+          git push origin HEAD:repo
+
+      - name: Verify hosted index
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            https://raw.githubusercontent.com/studio1111/MangOn/repo/index.pb -o /tmp/index.pb
+          python - <<'PY'
+          import gzip
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, ".github/scripts")
+          import index_pb2
+          index = index_pb2.Index()
+          index.ParseFromString(gzip.decompress(Path("/tmp/index.pb").read_bytes()))
+          assert index.name == "MangOn"
+          assert index.signingKey and len(index.signingKey) == 64
+          assert len(index.extensionList.extensions) == 1
+          print(f"Hosted index verified: {len(index.extensionList.extensions)} extension(s), signer {index.signingKey}")
+          PY
