@@ -117,19 +117,36 @@ jobs:
           EXPECTED_FINGERPRINT: ${{ steps.signing.outputs.signing_key }}
         run: |
           set -euo pipefail
-          apk="$(find src/fa/manhwachi/build/outputs/apk/release -maxdepth 1 -name '*.apk' -print -quit)"
-          jar="$(find src/fa/manhwachi/build/outputs/jar/release -maxdepth 1 -name '*.jar' -print -quit)"
-          test -n "$apk" && test -n "$jar"
+          set -euo pipefail
+          apk_dir="src/fa/manhwachi/build/outputs/apk/release"
+          jar_dir="src/fa/manhwachi/build/outputs/jar/release"
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          test -x "$apksigner"
-          apk_fingerprint="$("$apksigner" verify --print-certs "$apk" | awk -F': ' '/certificate SHA-256 digest:/ {print tolower($2); exit}' | tr -d ':')"
-          jar_fingerprint="$(keytool -printcert -jarfile "$jar" | awk -F': ' '/SHA256:/ {print tolower($2); exit}' | tr -d ':')"
-          echo "Expected certificate SHA-256: $EXPECTED_FINGERPRINT"
-          echo "APK certificate SHA-256:      ${apk_fingerprint:-<unreadable>}"
-          echo "JAR certificate SHA-256:      ${jar_fingerprint:-<unreadable>}"
-          test -f signingkey.jks || { echo "::error::Signing keystore is missing from Gradle root project"; exit 1; }
-          test "$apk_fingerprint" = "$EXPECTED_FINGERPRINT" || { echo "::error::APK certificate does not match repository signing key"; exit 1; }
-          test "$jar_fingerprint" = "$EXPECTED_FINGERPRINT" || { echo "::error::JAR certificate does not match repository signing key"; exit 1; }
+          test -x "$apksigner" || { echo "::error::Android apksigner was not found"; exit 1; }
+
+          apk=""
+          while IFS= read -r candidate; do
+            fingerprint="$("$apksigner" verify --print-certs "$candidate" 2>/dev/null | awk -F': ' '/certificate SHA-256 digest:/ {print tolower($2); exit}' | tr -d ':')"
+            echo "APK candidate $(basename "$candidate"): ${fingerprint:-unsigned-or-unreadable}"
+            if [[ -n "$fingerprint" && "$fingerprint" == "$EXPECTED_FINGERPRINT" ]]; then
+              apk="$candidate"
+              break
+            fi
+          done < <(find "$apk_dir" -maxdepth 1 -type f -name '*.apk' -print | sort)
+
+          jar=""
+          while IFS= read -r candidate; do
+            fingerprint="$(keytool -printcert -jarfile "$candidate" 2>/dev/null | awk -F': ' '/SHA256:/ {print tolower($2); exit}' | tr -d ':')"
+            echo "JAR candidate $(basename "$candidate"): ${fingerprint:-unsigned-or-unreadable}"
+            if [[ -n "$fingerprint" && "$fingerprint" == "$EXPECTED_FINGERPRINT" ]]; then
+              jar="$candidate"
+              break
+            fi
+          done < <(find "$jar_dir" -maxdepth 1 -type f -name '*.jar' -print | sort)
+
+          test -n "$apk" || { echo "::error::No release APK matches the repository signing certificate"; exit 1; }
+          test -n "$jar" || { echo "::error::No extension JAR matches the repository signing certificate"; exit 1; }
+          echo "Verified signed APK: $(basename "$apk")"
+          echo "Verified signed JAR: $(basename "$jar")"
           echo "APK and JAR are signed by the repository certificate."
 
       - name: Upload release bundle
