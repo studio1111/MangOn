@@ -111,12 +111,12 @@ jobs:
           ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon
 
       - name: Verify APK and extension JAR signatures
+        id: verified
         if: github.ref == 'refs/heads/main'
         working-directory: upstream
         env:
           EXPECTED_FINGERPRINT: ${{ steps.signing.outputs.signing_key }}
         run: |
-          set -euo pipefail
           set -euo pipefail
           apk_dir="src/fa/manhwachi/build/outputs/apk/release"
           jar_dir="src/fa/manhwachi/build/outputs/jar/release"
@@ -145,6 +145,8 @@ jobs:
 
           test -n "$apk" || { echo "::error::No release APK matches the repository signing certificate"; exit 1; }
           test -n "$jar" || { echo "::error::No extension JAR matches the repository signing certificate"; exit 1; }
+          echo "apk_path=$apk" >> "$GITHUB_OUTPUT"
+          echo "jar_path=$jar" >> "$GITHUB_OUTPUT"
           echo "Verified signed APK: $(basename "$apk")"
           echo "Verified signed JAR: $(basename "$jar")"
           echo "APK and JAR are signed by the repository certificate."
@@ -155,8 +157,8 @@ jobs:
           name: mangon-release-bundle
           path: |
             upstream/src/fa/manhwachi/build/keiyoushi-source-info.json
-            upstream/src/fa/manhwachi/build/outputs/apk/release/*.apk
-            upstream/src/fa/manhwachi/build/outputs/jar/release/*.jar
+            upstream/${{ steps.verified.outputs.apk_path }}
+            upstream/${{ steps.verified.outputs.jar_path }}
           if-no-files-found: error
           retention-days: 7
 
