@@ -25,6 +25,8 @@ import org.jsoup.nodes.Element
 
 @Source
 abstract class ManhwaChi : KeiSource() {
+    private val slugRegex = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
+
     override suspend fun getPopularManga(page: Int): MangasPage {
         if (page > 1) return MangasPage(emptyList(), false)
         return parseCards(client.get("$baseUrl/search.html".toHttpUrl(), Fetch.DOCUMENT).asJsoup())
@@ -61,7 +63,12 @@ abstract class ManhwaChi : KeiSource() {
     }
 
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
-        if (url.host != baseUrl.toHttpUrl().host || url.pathSegments.firstOrNull() != "comic") return null
+        val sourceUrl = baseUrl.toHttpUrl()
+        if (url.scheme != sourceUrl.scheme || url.host != sourceUrl.host || url.port != sourceUrl.port ||
+            url.pathSegments.firstOrNull() != "comic"
+        ) {
+            return null
+        }
         val document = client.get(url, Fetch.DOCUMENT).asJsoup()
         return parseDetails(document).apply { this.url = url.encodedPath }
     }
@@ -72,35 +79,20 @@ abstract class ManhwaChi : KeiSource() {
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate {
-        val document = client.get(getMangaUrl(manga), Fetch.DOCUMENT).asJsoup()
-        val details = if (fetchDetails) parseDetails(document) else SManga.create()
+        val details = if (fetchDetails) {
+            client.get(getMangaUrl(manga), Fetch.DOCUMENT).asJsoup().let(::parseDetails)
+        } else {
+            SManga.create()
+        }
         val chapterList = if (fetchChapters) fetchPublicChapters(manga) else emptyList()
         return SMangaUpdate(details, chapterList)
     }
 
     private suspend fun fetchPublicChapters(manga: SManga): List<SChapter> {
         val slug = manga.url.substringAfter("/comic/", "").substringBefore('?').substringBefore('/')
-        if (slug.isBlank()) return emptyList()
+        if (!slugRegex.matches(slug)) return emptyList()
 
-        // The detail HTML only renders four chapters. The site's public data.json
-        // contains the complete chapter catalog and each chapter's free flag.
-        val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
-        val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptyList()
-
-        // This public endpoint reports per-user time locks even for anonymous visitors.
-        // Fail closed if access state cannot be checked; never expose a locked chapter.
-        val access = client.get("$baseUrl/api/access/chapters/$slug".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
-        val locked = access.getArrayOrNull("locked")
-            ?.mapNotNull { (it as? JsonObject)?.getIntOrNull("num") }
-            ?.toSet()
-            ?: throw IllegalStateException("وضعیت دسترسی فصل‌ها قابل بررسی نیست؛ برای جلوگیری از نمایش فصل قفل‌شده دوباره تلاش کنید.")
-
-        return episodes.mapNotNull { element ->
-            val episode = element as? JsonObject ?: return@mapNotNull null
-            val number = episode.getIntOrNull("num") ?: return@mapNotNull null
-            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull == "true"
-            if (!isFree || number in locked) return@mapNotNull null
-
+        return fetchPublicChapterNumbers(slug).map { number ->
             SChapter.create().apply {
                 setUrlWithoutDomain("$baseUrl/reader.html?slug=$slug&ch=$number")
                 name = "چپتر $number"
@@ -108,6 +100,28 @@ abstract class ManhwaChi : KeiSource() {
                 date_upload = 0L
             }
         }.sortedByDescending { it.chapter_number }
+    }
+
+    private suspend fun fetchPublicChapterNumbers(slug: String): Set<Int> {
+        if (!slugRegex.matches(slug)) return emptySet()
+
+        val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
+        val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptySet()
+
+        val access = client.get("$baseUrl/api/access/chapters/$slug".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
+        val lockedEntries = access.getArrayOrNull("locked")
+            ?: throw IllegalStateException("وضعیت دسترسی فصل‌ها قابل بررسی نیست؛ برای جلوگیری از نمایش فصل قفل‌شده دوباره تلاش کنید.")
+        val locked = lockedEntries.map { entry ->
+            (entry as? JsonObject)?.getIntOrNull("num")
+                ?: throw IllegalStateException("پاسخ وضعیت قفل فصل‌ها نامعتبر است؛ هیچ فصلی نمایش داده نمی‌شود.")
+        }.toSet()
+
+        return episodes.mapNotNull { element ->
+            val episode = element as? JsonObject ?: return@mapNotNull null
+            val number = episode.getIntOrNull("num")?.takeIf { it > 0 } ?: return@mapNotNull null
+            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull == "true"
+            number.takeIf { isFree && number !in locked }
+        }.toSet()
     }
 
     private fun parseDetails(document: Document) = SManga.create().apply {
@@ -121,7 +135,29 @@ abstract class ManhwaChi : KeiSource() {
     }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val document = client.get(getChapterUrl(chapter), Fetch.DOCUMENT).asJsoup()
+        val chapterUrl = getChapterUrl(chapter).toHttpUrl()
+        val sourceUrl = baseUrl.toHttpUrl()
+        check(
+            chapterUrl.scheme == sourceUrl.scheme &&
+                chapterUrl.host == sourceUrl.host &&
+                chapterUrl.port == sourceUrl.port &&
+                chapterUrl.encodedPath == "/reader.html",
+        ) {
+            "نشانی فصل معتبر نیست."
+        }
+        val slug = chapterUrl.queryParameter("slug")
+            ?.takeIf(slugRegex::matches)
+            ?: throw IllegalStateException("شناسهٔ اثر در نشانی فصل معتبر نیست.")
+        val number = chapterUrl.queryParameter("ch")?.toIntOrNull()?.takeIf { it > 0 }
+            ?: throw IllegalStateException("شمارهٔ فصل در نشانی معتبر نیست.")
+
+        // Chapter lists can be cached by Mihon. Recheck public/free access immediately
+        // before opening the reader so a chapter locked since listing is not exposed.
+        check(number in fetchPublicChapterNumbers(slug)) {
+            "این فصل دیگر به‌صورت رایگان و عمومی قابل خواندن نیست."
+        }
+
+        val document = client.get(chapterUrl, Fetch.DOCUMENT).asJsoup()
         val images = document.select("#reader .manhwa-panel img[src]")
             .map { it.absUrl("src") }
             .filter(String::isNotBlank)
