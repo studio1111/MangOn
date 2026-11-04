@@ -40,6 +40,7 @@ jobs:
         run: |
           mkdir -p upstream/src/fa
           cp -a mangon/src/fa/. upstream/src/fa/
+          python -c 'from pathlib import Path; p=Path("upstream/settings.gradle.kts"); s=p.read_text(); old="\\nloadAllIndividualExtensions()\\n"; new="\\nloadIndividualExtension(\\"fa\\", \\"manhwachi\\")\\n"; assert old in s, "Keiyoushi settings layout changed"; p.write_text(s.replace(old,new,1))'
 
       - name: Set up Java
         uses: actions/setup-java@v4
