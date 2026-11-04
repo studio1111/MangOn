@@ -7,7 +7,7 @@
 | منبع | شواهد زنده | وضعیت برای Mihon |
 | --- | --- | --- |
 | [ManhwaChi](https://manhwachi.ir) | کاتالوگ، جزئیات، فهرست فصل از JSON، وضعیت قفل و reader تصویری عمومی تأیید شد | **تأیید فنی؛ تنها ماژول فعلی** |
-| [GlobalComix فارسی](https://globalcomix.com/books/fa/manga) | چند issue فارسی و reader تصویری عمومی؛ صفحهٔ ۱۳ نمونه نیز بدون ورود باز شد، اما گروه‌بندی پایدار سری/فصل و پوشش کامل کاتالوگ هنوز تثبیت نشده | نامزد قابل‌پیگیری؛ فعلاً پیاده‌سازی نمی‌شود |
+| [GlobalComix فارسی](https://globalcomix.com/browse/fa/manga) | چند issue فارسی و reader تصویری عمومی؛ صفحهٔ ۱۳ نمونه نیز بدون ورود باز شد، اما گروه‌بندی پایدار سری/فصل و پوشش کامل کاتالوگ هنوز تثبیت نشده | نامزد قابل‌پیگیری؛ فعلاً پیاده‌سازی نمی‌شود |
 | [MangaUp](https://mangaup.ir) | metadata و پرچم فصل‌های رایگان عمومی است، اما مسیر مستقیم reader برای فصل رایگان به صفحهٔ ورود redirect می‌شود | غیرقابل پشتیبانی بدون ورود |
 | [ManEast](https://maneast.fun) | metadata و فهرست فصل عمومی است؛ reader مستقیم حتی برای نمونهٔ `isFree=true` به صفحهٔ ورود redirect می‌شود | غیرقابل پشتیبانی بدون ورود |
 | [MangaMic](https://mangamic.com) | کاتالوگ و مسیر فصل قابل مشاهده است، اما صفحهٔ فصل درخواست ورود/ثبت‌نام می‌کند | غیرقابل پشتیبانی بدون ورود |
@@ -75,7 +75,7 @@
 
 ## وضعیت CI، toolchain و نگهداری
 
-- شاخهٔ `main` اکنون روی commit ادغام‌شدهٔ [`196a8925da24ee4451a3ce8976832eef42a3548b`](https://github.com/studio1111/MangOn/commit/196a8925da24ee4451a3ce8976832eef42a3548b) قرار دارد. این commit فقط pin مربوط به workflow نگهداری را از طریق [PR #5](https://github.com/studio1111/MangOn/pull/5) به‌روزرسانی کرد؛ کد افزونه و workflow ساخت تغییر نکردند.
+- HEAD فعلی شاخهٔ `main` پس از ثبت این گزارش [`e9e2e6093df0561a71f3c13466253c19592f1516`](https://github.com/studio1111/MangOn/commit/e9e2e6093df0561a71f3c13466253c19592f1516) است. pin مربوط به workflow نگهداری در commit [`196a8925da24ee4451a3ce8976832eef42a3548b`](https://github.com/studio1111/MangOn/commit/196a8925da24ee4451a3ce8976832eef42a3548b) از طریق [PR #5](https://github.com/studio1111/MangOn/pull/5) به‌روزرسانی شد؛ commit فعلی بعدی فقط گزارش ممیزی را تغییر داده و کد افزونه و workflow ساخت دست‌نخورده‌اند.
 - آخرین build، [run #13](https://github.com/studio1111/MangOn/actions/runs/41859638601)، روی commit منبع [`c269440f320dbb46f4c7d72311b623f556e5f6a3`](https://github.com/studio1111/MangOn/commit/c269440f320dbb46f4c7d72311b623f556e5f6a3) با نتیجهٔ `success` تکمیل شد. `assembleRelease`، `lintRelease` و upload موفق بودند؛ چون بعد از آن فقط فایل retention تغییر کرده، build جدیدی برای کد منبع لازم نبود.
 - artifact با نام `mangon-manhwachi-apk` و شناسهٔ `13338778264` در API تأیید شد؛ archive تا `2026-11-18T15:38:13Z` منقضی نمی‌شود.
 - runهای #10 و #11 به‌علت `:src:fa:manhwachi:spotlessKotlinCheck` شکست خوردند؛ log واقعی آن‌ها شکست قالب‌بندی Kotlin را نشان می‌دهد، نه خطای compile یا reader. runهای #12 و #13 پس از اصلاح قالب‌بندی موفق شدند.
