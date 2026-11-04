@@ -66,7 +66,9 @@ abstract class ManhwaChi : KeiSource() {
         val sourceUrl = baseUrl.toHttpUrl()
         if (url.scheme != sourceUrl.scheme || url.host != sourceUrl.host || url.port != sourceUrl.port ||
             url.pathSegments.firstOrNull() != "comic"
-        ) return null
+        ) {
+            return null
+        }
         val document = client.get(url, Fetch.DOCUMENT).asJsoup()
         return parseDetails(document).apply { this.url = url.encodedPath }
     }
