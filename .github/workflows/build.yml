@@ -72,6 +72,7 @@ jobs:
           python -m unittest discover -s mangon/.github/scripts -p 'test_*.py' -v
 
       - name: Configure and verify stable signing key
+        if: github.event_name != 'pull_request'
         id: signing
         working-directory: upstream
         env:
@@ -81,29 +82,26 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            if [ -z "${SIGNING_KEYSTORE_B64:-}" ]; then
-              echo "PR validation uses the upstream temporary debug key; repository publishing is disabled for pull requests."
-              exit 0
-            fi
-          else
-            test -n "${SIGNING_KEYSTORE_B64:-}" || { echo "::error::SIGNING_KEYSTORE_B64 is required for publishing"; exit 1; }
-            test -n "${KEY_STORE_PASSWORD:-}" || { echo "::error::KEY_STORE_PASSWORD is required for publishing"; exit 1; }
-            test -n "${ALIAS:-}" || { echo "::error::ALIAS is required for publishing"; exit 1; }
-            test -n "${KEY_PASSWORD:-}" || { echo "::error::KEY_PASSWORD is required for publishing"; exit 1; }
-          fi
+          test -n "${SIGNING_KEYSTORE_B64:-}" || { echo "::error::SIGNING_KEYSTORE_B64 is required for publishing"; exit 1; }
+          test -n "${KEY_STORE_PASSWORD:-}" || { echo "::error::KEY_STORE_PASSWORD is required for publishing"; exit 1; }
+          test -n "${ALIAS:-}" || { echo "::error::ALIAS is required for publishing"; exit 1; }
+          test -n "${KEY_PASSWORD:-}" || { echo "::error::KEY_PASSWORD is required for publishing"; exit 1; }
+          printf '%s' "$SIGNING_KEYSTORE_B64" | base64 --decode > signingkey.jks
+          chmod 600 signingkey.jks
+          keytool -list -keystore signingkey.jks -storepass "$KEY_STORE_PASSWORD" -alias "$ALIAS" >/dev/null
+          fingerprint="$(keytool -exportcert -keystore signingkey.jks -storepass "$KEY_STORE_PASSWORD" -alias "$ALIAS" | sha256sum | awk '{print tolower($1)}')"
+          [[ "$fingerprint" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::Could not derive SHA-256 certificate fingerprint"; exit 1; }
+          echo "signing_key=$fingerprint" >> "$GITHUB_OUTPUT"
+          echo "Stable signing certificate validated; SHA-256 fingerprint: $fingerprint"
 
-          if [ -n "${SIGNING_KEYSTORE_B64:-}" ]; then
-            printf '%s' "$SIGNING_KEYSTORE_B64" | base64 --decode > signingkey.jks
-            chmod 600 signingkey.jks
-            keytool -list -keystore signingkey.jks -storepass "$KEY_STORE_PASSWORD" -alias "$ALIAS" >/dev/null
-            fingerprint="$(keytool -exportcert -keystore signingkey.jks -storepass "$KEY_STORE_PASSWORD" -alias "$ALIAS" | sha256sum | awk '{print tolower($1)}')"
-            [[ "$fingerprint" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::Could not derive SHA-256 certificate fingerprint"; exit 1; }
-            echo "signing_key=$fingerprint" >> "$GITHUB_OUTPUT"
-            echo "Stable signing certificate validated; SHA-256 fingerprint: $fingerprint"
-          fi
+      - name: Build and lint release (PR debug validation)
+        if: github.event_name == 'pull_request'
+        working-directory: upstream
+        run: |
+          ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon
 
-      - name: Build and lint release
+      - name: Build and lint release (signed publish)
+        if: github.event_name != 'pull_request'
         working-directory: upstream
         env:
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
