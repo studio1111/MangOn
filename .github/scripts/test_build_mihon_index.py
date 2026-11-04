@@ -56,6 +56,9 @@ class BuildMihonIndexTests(unittest.TestCase):
         self.assertEqual((self.output / "apk/test.apk").read_bytes(), b"apk")
         self.assertEqual((self.output / "jar/test.jar").read_bytes(), b"jar")
         self.assertTrue((self.output / "index.json").is_file())
+        descriptor = json.loads((self.output / "repo.json").read_text())
+        self.assertEqual(descriptor["index_v2"], "https://raw.githubusercontent.com/studio1111/MangOn/repo/index.pb")
+        self.assertEqual(descriptor["meta"]["signingKeyFingerprint"], self.fingerprint)
 
     def test_rejects_invalid_signing_fingerprint(self):
         with self.assertRaisesRegex(ValueError, "64-character"):
