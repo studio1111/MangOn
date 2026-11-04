@@ -197,21 +197,45 @@ jobs:
           git commit -m "Publish MangOn Mihon repository"
           git push origin HEAD:repo
 
-      - name: Verify hosted index
+      - name: Verify hosted Mihon repository and assets
+        env:
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          base="https://raw.githubusercontent.com/studio1111/MangOn/repo"
           curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-            https://raw.githubusercontent.com/studio1111/MangOn/repo/index.pb -o /tmp/index.pb
+            "$base/repo.json?cachebust=$GITHUB_SHA" -o /tmp/repo.json
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            "$base/index.pb?cachebust=$GITHUB_SHA" -o /tmp/index.pb
           python - <<'PY'
           import gzip
+          import json
+          import subprocess
           from pathlib import Path
-          import sys
-          sys.path.insert(0, ".github/scripts")
           import index_pb2
+
+          descriptor = json.loads(Path("/tmp/repo.json").read_text(encoding="utf-8"))
+          assert descriptor["meta"]["name"] == "MangOn"
+          assert descriptor["index_v2"] == "https://raw.githubusercontent.com/studio1111/MangOn/repo/index.pb"
+
           index = index_pb2.Index()
           index.ParseFromString(gzip.decompress(Path("/tmp/index.pb").read_bytes()))
+          fingerprint = descriptor["meta"]["signingKeyFingerprint"]
           assert index.name == "MangOn"
-          assert index.signingKey and len(index.signingKey) == 64
-          assert len(index.extensionList.extensions) == 1
-          print(f"Hosted index verified: {len(index.extensionList.extensions)} extension(s), signer {index.signingKey}")
+          assert index.signingKey == fingerprint and len(fingerprint) == 64
+          extensions = list(index.extensionList.extensions)
+          assert len(extensions) == 1
+          extension = extensions[0]
+          assert extension.packageName == "eu.kanade.tachiyomi.extension.fa.manhwachi"
+          assert extension.sources and extension.sources[0].language == "fa"
+
+          for asset_url in (extension.resources.apkUrl, extension.resources.jarUrl):
+              assert asset_url.startswith("https://raw.githubusercontent.com/studio1111/MangOn/repo/")
+              subprocess.run(
+                  ["curl", "--fail", "--silent", "--show-error", "--retry", "5",
+                   "--retry-delay", "2", asset_url + "?cachebust=" + __import__("os").environ["GITHUB_SHA"],
+                   "--output", "/dev/null"],
+                  check=True,
+              )
+          print(f"Hosted repository verified: {len(extensions)} extension(s); descriptor, index, APK and JAR are reachable.")
           PY
