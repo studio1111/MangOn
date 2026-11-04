@@ -180,6 +180,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          mkdir -p /tmp/mangon-verify
+          cp .github/scripts/index_pb2.py /tmp/mangon-verify/index_pb2.py
           cp -a dist/repo /tmp/mangon-publish
           git fetch origin repo || true
           if git show-ref --verify --quiet refs/remotes/origin/repo; then
@@ -217,7 +219,7 @@ jobs:
           import subprocess
           import sys
           from pathlib import Path
-          sys.path.insert(0, ".github/scripts")
+          sys.path.insert(0, "/tmp/mangon-verify")
           import index_pb2
 
           descriptor = json.loads(Path("/tmp/repo.json").read_text(encoding="utf-8"))
