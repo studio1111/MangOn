@@ -17,11 +17,11 @@ import keiyoushi.utils.getObjectOrNull
 import keiyoushi.utils.parseAs
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 
 @Source
 abstract class ManhwaChi : KeiSource() {
