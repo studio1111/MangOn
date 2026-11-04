@@ -124,6 +124,10 @@ jobs:
           test -x "$apksigner"
           apk_fingerprint="$("$apksigner" verify --print-certs "$apk" | awk -F': ' '/certificate SHA-256 digest:/ {print tolower($2); exit}' | tr -d ':')"
           jar_fingerprint="$(keytool -printcert -jarfile "$jar" | awk -F': ' '/SHA256:/ {print tolower($2); exit}' | tr -d ':')"
+          echo "Expected certificate SHA-256: $EXPECTED_FINGERPRINT"
+          echo "APK certificate SHA-256:      ${apk_fingerprint:-<unreadable>}"
+          echo "JAR certificate SHA-256:      ${jar_fingerprint:-<unreadable>}"
+          test -f signingkey.jks || { echo "::error::Signing keystore is missing from Gradle root project"; exit 1; }
           test "$apk_fingerprint" = "$EXPECTED_FINGERPRINT" || { echo "::error::APK certificate does not match repository signing key"; exit 1; }
           test "$jar_fingerprint" = "$EXPECTED_FINGERPRINT" || { echo "::error::JAR certificate does not match repository signing key"; exit 1; }
           echo "APK and JAR are signed by the repository certificate."
