@@ -1,0 +1,64 @@
+name: Build MangOn extensions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/build.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mangon-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout MangOn
+        uses: actions/checkout@v4
+        with:
+          path: mangon
+
+      - name: Checkout current Keiyoushi build toolchain
+        uses: actions/checkout@v4
+        with:
+          repository: keiyoushi/extensions-source
+          ref: main
+          path: upstream
+
+      - name: Overlay MangOn source modules
+        run: |
+          mkdir -p upstream/src/fa
+          cp -a mangon/src/fa/. upstream/src/fa/
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and lint
+        working-directory: upstream
+        run: |
+          ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: mangon-manhwachi-apk
+          path: upstream/src/fa/manhwachi/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 14
