@@ -25,6 +25,8 @@ import org.jsoup.nodes.Element
 
 @Source
 abstract class ManhwaChi : KeiSource() {
+    private val slugRegex = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
+
     override suspend fun getPopularManga(page: Int): MangasPage {
         if (page > 1) return MangasPage(emptyList(), false)
         return parseCards(client.get("$baseUrl/search.html".toHttpUrl(), Fetch.DOCUMENT).asJsoup())
@@ -61,7 +63,10 @@ abstract class ManhwaChi : KeiSource() {
     }
 
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
-        if (url.host != baseUrl.toHttpUrl().host || url.pathSegments.firstOrNull() != "comic") return null
+        val sourceUrl = baseUrl.toHttpUrl()
+        if (url.scheme != sourceUrl.scheme || url.host != sourceUrl.host || url.port != sourceUrl.port ||
+            url.pathSegments.firstOrNull() != "comic"
+        ) return null
         val document = client.get(url, Fetch.DOCUMENT).asJsoup()
         return parseDetails(document).apply { this.url = url.encodedPath }
     }
@@ -83,7 +88,7 @@ abstract class ManhwaChi : KeiSource() {
 
     private suspend fun fetchPublicChapters(manga: SManga): List<SChapter> {
         val slug = manga.url.substringAfter("/comic/", "").substringBefore('?').substringBefore('/')
-        if (!slug.matches(Regex("[a-z0-9-]+"))) return emptyList()
+        if (!slugRegex.matches(slug)) return emptyList()
 
         return fetchPublicChapterNumbers(slug).map { number ->
             SChapter.create().apply {
@@ -96,7 +101,7 @@ abstract class ManhwaChi : KeiSource() {
     }
 
     private suspend fun fetchPublicChapterNumbers(slug: String): Set<Int> {
-        if (!slug.matches(Regex("[a-z0-9-]+"))) return emptySet()
+        if (!slugRegex.matches(slug)) return emptySet()
 
         val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
         val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptySet()
@@ -129,11 +134,17 @@ abstract class ManhwaChi : KeiSource() {
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
         val chapterUrl = getChapterUrl(chapter).toHttpUrl()
-        check(chapterUrl.host == baseUrl.toHttpUrl().host) {
+        val sourceUrl = baseUrl.toHttpUrl()
+        check(
+            chapterUrl.scheme == sourceUrl.scheme &&
+                chapterUrl.host == sourceUrl.host &&
+                chapterUrl.port == sourceUrl.port &&
+                chapterUrl.encodedPath == "/reader.html",
+        ) {
             "نشانی فصل معتبر نیست."
         }
         val slug = chapterUrl.queryParameter("slug")
-            ?.takeIf { it.matches(Regex("[a-z0-9-]+")) }
+            ?.takeIf(slugRegex::matches)
             ?: throw IllegalStateException("شناسهٔ اثر در نشانی فصل معتبر نیست.")
         val number = chapterUrl.queryParameter("ch")?.toIntOrNull()?.takeIf { it > 0 }
             ?: throw IllegalStateException("شمارهٔ فصل در نشانی معتبر نیست.")
