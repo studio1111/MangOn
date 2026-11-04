@@ -46,7 +46,7 @@ abstract class ManhwaChi : KeiSource() {
                 this.title = title
                 thumbnail_url = card.selectFirst("img")?.absUrl("src")?.takeIf(String::isNotBlank)
                 description = card.selectFirst(".synopsis")?.text()?.trim()
-                genre = card.select(".genre").joinToString { it.text() }.ifBlank { null }
+                genre = card.select(".genre").joinToString { it.text() }.takeIf(String::isNotBlank)
             }
         }.distinctBy { it.url }
         return MangasPage(mangas, false)
@@ -91,7 +91,7 @@ abstract class ManhwaChi : KeiSource() {
             ?: document.selectFirst("#manhwaTitle")?.text()?.trim().orEmpty()
         thumbnail_url = document.selectFirst("#dynamic-cover")?.absUrl("src")
         description = document.selectFirst("#dynamic-description")?.text()?.trim()
-        genre = document.select("#type a").joinToString { it.text() }.ifBlank { null }
+        genre = document.select("#type a").joinToString { it.text() }.takeIf(String::isNotBlank)
         status = SManga.UNKNOWN
     }
 
