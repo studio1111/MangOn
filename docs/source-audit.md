@@ -1,8 +1,68 @@
 # ارزیابی منابع فارسی
 
-**آخرین بازبینی زنده:** 2026-11-04 (دور دوم، حدود 16:00 تا 16:16 UTC). گزارش بر پایهٔ صفحات عمومی، پاسخ‌های JSON، سورس JavaScript عمومی و readerهای قابل‌دسترسی تهیه شده است. بررسی فنی به‌معنی مجوز بازنشر آثار نیست. هیچ ورود، پرداخت، قفل اشتراک، محدودیت جغرافیایی یا کنترل ضدربات دور زده نشده است.
+**آخرین بازبینی زنده:** 2026-11-09، حدود 17:45 تا 18:10 UTC. snapshot جدید زیر مرجع وضعیت فعلی است؛ بخش‌های قدیمی‌تر برای حفظ تاریخچه نگه داشته شده‌اند و ممکن است در زمان حاضر منسوخ باشند. بررسی فنی به‌معنی مجوز بازنشر آثار نیست و هیچ ورود، پرداخت، قفل اشتراک، محدودیت جغرافیایی یا کنترل ضدربات دور زده نشده است.
 
-## خلاصهٔ تصمیم
+## آخرین ممیزی — 2026-11-09
+
+### وضعیت مخزن، CI و انتشار
+
+- شاخهٔ main اکنون روی commit [5f500573e51ce24922c60d5a9b7fbf00129e889a](https://github.com/studio1111/MangOn/commit/5f500573e51ce24922c60d5a9b7fbf00129e889a) قرار دارد. تغییرات این نوبت شامل اصلاح کاتالوگ JSON، اصلاح schema پروتوباف Mihon، ارتقای pin مربوط به actions/setup-java، نگهداری ۳۰ اجرای اخیر و اجرای انتشار امضاشده بوده است.
+- آخرین انتشار main، [run #62](https://github.com/studio1111/MangOn/actions/runs/42659789672)، در 2026-11-09 با نتیجهٔ success تمام شد: build، lint، اعتبارسنجی keystore، امضای APK و JAR، تست تولید index، انتشار شاخهٔ repo و بررسی مجدد descriptor/index/assets همگی موفق بودند.
+- مخزن Mihon واقعاً در شاخهٔ repo منتشر شده است. فایل‌های فعلی: repo.json، index.pb، apk/tachiyomi-fa.manhwachi-v1.6.2.apk و jar/tachiyomi-fa.manhwachi-v1.6.2.jar. اندازه‌ها به‌ترتیب 276، 369، 43,907 و 74,086 بایت‌اند. اثرانگشت عمومی گواهی در descriptor برابر 2922be3a3774a0e1dfb8ff1fc75e73e4637703d3243d7ddc7f1fdbcfd3b070dd است و run #62 تطابق امضاها را تأیید کرده است.
+- آدرس قابل افزودن به Mihon: [repo.json](https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json). GitHub Releases هنوز tag رسمی ندارد؛ انتشار از طریق شاخهٔ repo انجام می‌شود. نصب و اجرای واقعی روی دستگاه هنوز تأیید نشده است.
+- artifact انتشار main با نام mangon-release-bundle، شناسهٔ 13693154526، تا 2026-11-16T16:57:42Z معتبر است. artifact اجرای PR #14 با شناسهٔ 13696179650 تا 2026-11-16T17:49:42Z معتبر است؛ artifact PR فقط build آزمایشی است و به شاخهٔ انتشار نمی‌رود.
+- آخرین اجرای PR، [run #64](https://github.com/studio1111/MangOn/actions/runs/42668156383)، روی branch مربوط به [PR #14](https://github.com/studio1111/MangOn/pull/14) با نتیجهٔ success تمام شد؛ job انتشار به‌درستی skipped بود.
+- آخرین شکست build در این snapshot، [run #59](https://github.com/studio1111/MangOn/actions/runs/42652743817)، فقط به‌علت spotlessKotlinCheck بود: تابع JsonObject.string در ManhwaChi.kt باید در یک خط قالب‌بندی می‌شد. این خطای formatter بود، نه خطای کامپایل یا reader. runهای #60 و #61 پس از اصلاح موفق شدند و run #62 روی main نیز موفق است.
+- شکست‌های قدیمی‌تر در runهای #49، #50 و #52 مربوط به import مسیر تست، استخراج digest گواهی APK/JAR و پیدا نشدن index_pb2 در مرحلهٔ بررسی میزبانی بودند؛ تغییرات بعدی این موارد را اصلاح کردند. run #44 نیز به تطابق نداشتن گواهی APK با fingerprint مورد انتظار رسید؛ verifier و مسیر امضای بعدی بازطراحی شد و run #62 امضاهای فعلی را تأیید کرد.
+- برای نگهداری دقیق‌تر، workflow در commit فعلی با workflow_run: completed پس از هر build اجرا می‌شود. [run retention #10](https://github.com/studio1111/MangOn/actions/runs/42670899198) موفق شد، 32 اجرای موجود را بررسی کرد، دو اجرای قدیمی #41 و #42 را حذف کرد و تعداد کل را به **30** رساند. هیچ اجرای فعال لغو یا حذف نشد.
+- main در GitHub API مقدار protected=false دارد؛ در این نوبت branch protection تغییر نکرده است.
+
+### وضعیت upstream و مهندسی
+
+- pin فعلی Keiyoushi برابر ee661f5233b346559fbdd53993d447c318c5aef0 است. HEAD فعلی upstream برابر [1b7089818edf1e36bf71256369e4c6f36bbd9158](https://github.com/keiyoushi/extensions-source/commit/1b7089818edf1e36bf71256369e4c6f36bbd9158) و **167 commit جلوتر** از pin است.
+- upstream جدید Gradle 9.9.0، Android Gradle Plugin 9.5.1، Kotlin 2.4.10، KSP 2.3.9، Spotless 8.10.1 و ktlint 1.8.0 را دارد؛ همچنین core شبکه، WebView و ZIP تغییرات گسترده‌ای داشته‌اند. ساختار settings.gradle.kts هنوز helper مربوط به loadIndividualExtension("fa", "manhwachi") را دارد. چون pin فعلی در run #62 سبز است، به‌روزرسانی toolchain انجام نشد؛ ارتقا باید در branch جداگانه با build/lint کامل ارزیابی شود.
+- upstream اکنون AGENTS.md دارد و پیش از تغییر source خواندن کامل CONTRIBUTING.md را لازم می‌داند. قواعد اصلی آن شامل KeiSource، metadata در DSL/KSP، عدم استفاده از SourceFactory و استفاده از helperهای keiyoushi.utils است. کد MangOn از الگوی KeiSource استفاده می‌کند.
+- فهرست skillهای نصب‌شده در این محیط خالی بود و Ponytail رسمی قابل نصب نیست؛ AGENTS.md موجود MangOn حفظ شد. Supabase و OpenAI API برای این مخزن ایستا نیاز فنی ندارند و اضافه نشدند.
+
+### بررسی زندهٔ منابع فارسی
+
+| منبع و نمونه | شواهد فعلی | نتیجه |
+| --- | --- | --- |
+| [ManhwaChi — Error D Echo](https://manhwachi.ir/comic/error-d-echo) | جزئیات عمومی، فصل 1 با free=true، API با locked=[] و reader عمومی با 16 تصویر | **تأیید فنی؛ تنها افزونهٔ فعلی** |
+| [MangaUp — Dark and Light Martial Emperor](https://mangaup.ir/manhwa/245/dark-and-light-martial-emperor) | 70 فصل و 5 فصل رایگان در API؛ reader فصل رایگان 1 به صفحهٔ ورود redirect شد | رد برای Mihon بدون ورود |
+| [ManEast — My Slain Dragon Bride](https://maneast.fun/manhua/1382/my-slain-dragon-bride) | 22 فصل و 1 فصل رایگان؛ reader همان فصل رایگان به صفحهٔ ورود redirect شد | رد برای Mihon بدون ورود |
+| [Mangate — Nano Machine](https://mangate.ir/manhwa/201/nano-machine) | 200 فصل و 2 فصل رایگان؛ reader فصل رایگان به صفحهٔ ورود redirect شد؛ سایت محدودیت جغرافیایی را اعلام می‌کند | رد برای Mihon بدون ورود/اشتراک |
+| [MangaRiom — The Fragrant Flower Blooms with Dignity](https://mangariom.top/all-books/the-fragrant-flower-blooms-with-dignity/) | جزئیات و فهرست فصل‌ها دیده می‌شوند، اما صفحه صریحاً برای مشاهدهٔ فصل ورود/ثبت‌نام می‌خواهد | رد برای Mihon بدون ورود |
+| [Mangato — 20th Century Boys](https://mangato.ir/work/20th-century-boys) | صفحه صریحاً فقط دانلودی و فاقد مطالعهٔ آنلاین است؛ راهنمای reader به‌تنهایی reader فصل را اثبات نمی‌کند | منبع دانلودی؛ reader تأیید نشد |
+| [DomComic](https://domcomic.com/) | فروشگاه جلدهای چاپی مانگا و محصولات مرتبط؛ صفحهٔ فصل/reader وب مشاهده نشد | خارج از دامنهٔ افزونهٔ Mihon |
+
+- در MangaUp، API عمومی /post-type/files/245 فصل‌های 1 تا 5 را isFree=true اعلام می‌کند؛ مسیر مستقیم فصل 1 به ورود redirect می‌شود. وجود پرچم free به‌تنهایی به معنی reader عمومی نیست.
+- در ManEast، API عمومی /post-type/files/1382 فصل 1 را رایگان اعلام می‌کند، اما مسیر /manhua/1382/reader/106822 صفحهٔ ورود را نشان می‌دهد.
+- در Mangate، API عمومی /post-type/files/201 فصل‌های 1 و 2 را رایگان اعلام می‌کند، اما مسیر /manhwa/201/reader/6552 صفحهٔ ورود را نشان می‌دهد. هشدار محدودیت جغرافیایی نیز در صفحهٔ عمومی دیده شد.
+- در MangaRiom، لینک‌های فصل در صفحهٔ جزئیات موجودند، اما متن صفحه پیش از نمایش فصل‌ها ورود را لازم می‌داند؛ هیچ مسیر تصویری عمومی تأیید نشد.
+- در Mangato، نمونهٔ بررسی‌شده به دانلود جلد/فصل هدایت می‌کند و خود صفحه مطالعهٔ آنلاین را غیرفعال اعلام می‌کند.
+- در DomComic، ساختار فعلی فروشگاه چاپی است و برای افزونهٔ reader مناسب نیست.
+- هیچ ماژول حدسی برای این شش منبع ساخته نشد.
+
+### کیفیت ManhwaChi و PR مربوط به فهرست فصل‌ها
+
+- کاتالوگ عمومی data/data.json در snapshot فعلی شامل 30 اثر و 214 رکورد فصل است. منبع فعلی از JSON برای فهرست، جست‌وجوی فارسی/انگلیسی، توضیح و ژانر و صفحه‌بندی 20تایی در حافظه استفاده می‌کند.
+- جزئیات از selectorهای عمومی #faSubtitle، #manhwaTitle، #dynamic-cover، #dynamic-description و #type a استخراج می‌شوند.
+- نسخهٔ منتشرشدهٔ 1.6.2 فقط فصل‌های free=true و خارج از فهرست locked را نمایش می‌دهد و پیش از بازکردن دوباره وضعیت دسترسی را بررسی می‌کند. reader تصاویر را از #reader .manhwa-panel img[src] می‌گیرد؛ URLهای دارای token و expires موقت‌اند.
+- [PR #14](https://github.com/studio1111/MangOn/pull/14) همهٔ فصل‌های ثبت‌شده در JSON را در فهرست نشان می‌دهد و فصل‌های free=false را با برچسب قفل‌شده مشخص می‌کند. بازکردن فصل همچنان به free=true و وجود تصاویر در reader عمومی نیاز دارد. این PR قفل اشتراک یا فصل قفل‌شده را باز نمی‌کند و هنوز ادغام/انتشار نشده است.
+- در snapshot فعلی «خطای دی. پژواک» فقط یک فصل، شمارهٔ 1، با 16 تصویر reader عمومی دارد. API آن locked=[] برگرداند؛ منطق نسخهٔ 1.6.2 باید این فصل را مجاز بداند. اگر در Mihon نمایش داده نشد، آزمون refresh/update روی دستگاه و log برنامه لازم است.
+- فصل 40 «سرزمین فراموش‌شده» که در ممیزی قبلی موقتاً قفل بود، در این snapshot عمومی و قابل‌خواندن بود؛ وضعیت دسترسی سایت می‌تواند تغییر کند و باید هنگام خواندن دوباره بررسی شود.
+- درخواست بازکردن فصل‌هایی که سایت همچنان قفل/اشتراکی نگه می‌دارد قابل انجام نیست. می‌توان metadata آن‌ها را نشان داد، اما دورزدن paywall، ورود، قفل زمانی یا کنترل دسترسی انجام نمی‌شود.
+
+### موارد باقی‌مانده
+
+1. نصب و آزمون واقعی مخزن در Mihon روی دستگاه Android؛ شامل افزودن repo.json، به‌روزرسانی افزونه، نمایش فهرست، جست‌وجو، جزئیات و بازشدن فصل عمومی.
+2. تصمیم دربارهٔ ادغام PR #14؛ CI آن سبز است، اما هنوز در شاخهٔ main و مخزن منتشرشده نیست.
+3. در صورت نیاز به ارتقای Keiyoushi، یک branch آزمایشی برای toolchain جدید بسازید و سازگاری build/lint را اثبات کنید.
+4. تا زمان اثبات reader عمومی بدون ورود، برای MangaUp، ManEast، Mangate و MangaRiom افزونه نسازید؛ Mangato و DomComic نیز در نمونه‌های بررسی‌شده reader استاندارد Mihon ندارند.
+
+
+## خلاصهٔ تصمیم تاریخی — snapshot 2026-11-04
 
 | منبع | شواهد زنده | وضعیت برای Mihon |
 | --- | --- | --- |
@@ -25,7 +85,7 @@
 | [Kuro Reader](https://kuro-reader.com) | صفحهٔ معرفی/دریافت اپ؛ reader وب عمومی تأیید نشد | خارج از اولویت |
 | [DomComic](https://domcomic.com) | فروشگاه نسخه‌های چاپی است | خارج از دامنه |
 
-## ManhwaChi — شواهد و قرارداد فعلی
+## ManhwaChi — شواهد و قرارداد فعلی (snapshot 2026-11-04)
 
 - کتابخانه: [`/library-page.html`](https://manhwachi.ir/library-page.html). کارت‌ها با `#manhwaGrid .manhwa-card`، ویژگی `data-link`، عنوان `.manhwa-title` و تصویر `img[src]` شناسایی می‌شوند. نمونهٔ فعلی ۳۰ اثر دارد؛ `page=2` محتوای تکراری صفحهٔ اول برگرداند.
 - جست‌وجو: [`/search.html`](https://manhwachi.ir/search.html). ۳۰ عنوان در HTML عمومی دیده شد و فیلتر جست‌وجو در سمت کاربر انجام می‌شود؛ پارامتر GET و صفحه‌بندی پایدار تأیید نشده است.
