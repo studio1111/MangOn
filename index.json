@@ -12,8 +12,7 @@
         "packageName": "eu.kanade.tachiyomi.extension.fa.manhwachi",
         "resources": {
           "apkUrl": "https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.manhwachi-v1.6.1.apk",
-          "iconUrl": "https://raw.githubusercontent.com/keiyoushi/extensions-source/ee661f5233b346559fbdd53993d447c318c5aef0/core/src/main/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://raw.githubusercontent.com/studio1111/MangOn/repo/jar/tachiyomi-fa.manhwachi-v1.6.1.jar"
+          "iconUrl": "https://raw.githubusercontent.com/keiyoushi/extensions-source/ee661f5233b346559fbdd53993d447c318c5aef0/core/src/main/res/mipmap-xhdpi/ic_launcher.png"
         },
         "extensionLib": "1.6",
         "versionCode": "106001",
