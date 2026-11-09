@@ -34,11 +34,15 @@ jobs:
                 per_page: 100
               }
             );
-            const completed = runs
-              .filter(run => run.status === "completed")
+            // Include this cleanup run in the retention window. GitHub reports it
+            // as in_progress while the script runs; excluding it leaves 31
+            // completed runs after this job itself finishes.
+            const candidates = runs
+              .filter(run => run.status === "completed" || Number(run.id) === Number(context.runId))
               .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            const obsolete = completed.slice(30);
-            core.info(`Found ${runs.length} total runs and ${completed.length} completed runs; keeping ${Math.min(30, completed.length)} completed runs and deleting ${obsolete.length}. Active runs are never deleted.`);
+            const obsolete = candidates.slice(30);
+            const active = runs.filter(run => run.status !== "completed" && Number(run.id) !== Number(context.runId)).length;
+            core.info(`Found ${runs.length} total runs, ${candidates.length} retention candidates and ${active} other active runs; keeping ${Math.min(30, candidates.length)} candidates including this cleanup run and deleting ${obsolete.length}. Active runs are never deleted.`);
             for (const run of obsolete) {
               try {
                 await github.rest.actions.deleteWorkflowRun({
@@ -48,8 +52,6 @@ jobs:
                 });
                 core.info(`Deleted run ${run.id} (${run.name}, ${run.created_at}).`);
               } catch (error) {
-                // A concurrent cleanup or GitHub-side retention may remove a run
-                // after listWorkflowRunsForRepo returns it. Treat that as success.
                 if (error.status === 404 || error.status === 410) {
                   core.info(`Skipped run ${run.id}; it was already removed before deletion.`);
                   continue;
