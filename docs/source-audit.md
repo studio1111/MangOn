@@ -6,7 +6,7 @@
 
 ### وضعیت مخزن، CI و انتشار
 
-- شاخهٔ main اکنون روی commit [5f500573e51ce24922c60d5a9b7fbf00129e889a](https://github.com/studio1111/MangOn/commit/5f500573e51ce24922c60d5a9b7fbf00129e889a) قرار دارد. تغییرات این نوبت شامل اصلاح کاتالوگ JSON، اصلاح schema پروتوباف Mihon، ارتقای pin مربوط به actions/setup-java، نگهداری ۳۰ اجرای اخیر و اجرای انتشار امضاشده بوده است.
+- آخرین تغییر اجرایی مرتبط با CI در commit [5f500573e51ce24922c60d5a9b7fbf00129e889a](https://github.com/studio1111/MangOn/commit/5f500573e51ce24922c60d5a9b7fbf00129e889a) انجام شد؛ پس از آن README و ممیزی منابع با commitهای مستنداتی به‌روز شدند. تغییرات فنی این نوبت شامل اصلاح کاتالوگ JSON، اصلاح schema پروتوباف Mihon، ارتقای pin مربوط به actions/setup-java، نگهداری ۳۰ اجرای اخیر و انتشار امضاشده بود.
 - آخرین انتشار main، [run #62](https://github.com/studio1111/MangOn/actions/runs/42659789672)، در 2026-11-09 با نتیجهٔ success تمام شد: build، lint، اعتبارسنجی keystore، امضای APK و JAR، تست تولید index، انتشار شاخهٔ repo و بررسی مجدد descriptor/index/assets همگی موفق بودند.
 - مخزن Mihon واقعاً در شاخهٔ repo منتشر شده است. فایل‌های فعلی: repo.json، index.pb، apk/tachiyomi-fa.manhwachi-v1.6.2.apk و jar/tachiyomi-fa.manhwachi-v1.6.2.jar. اندازه‌ها به‌ترتیب 276، 369، 43,907 و 74,086 بایت‌اند. اثرانگشت عمومی گواهی در descriptor برابر 2922be3a3774a0e1dfb8ff1fc75e73e4637703d3243d7ddc7f1fdbcfd3b070dd است و run #62 تطابق امضاها را تأیید کرده است.
 - آدرس قابل افزودن به Mihon: [repo.json](https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json). GitHub Releases هنوز tag رسمی ندارد؛ انتشار از طریق شاخهٔ repo انجام می‌شود. نصب و اجرای واقعی روی دستگاه هنوز تأیید نشده است.
