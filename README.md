@@ -4,7 +4,7 @@ MangOn یک مخزن مستقل برای انتشار افزونه‌های فا
 
 ## افزودن به Mihon
 
-پس از پیکربندی کلید امضای پایدار و اجرای موفق workflow انتشار، این آدرس را در بخش **Settings → Browse → Extension repositories → Add repository** وارد کنید:
+مخزن امضاشده اکنون در شاخهٔ repo منتشر شده است. این آدرس را در بخش **Settings → Browse → Extension repositories → Add repository** وارد کنید:
 
 ```text
 https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json
@@ -29,7 +29,7 @@ https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json
 
 | نام | زبان | دامنه | وضعیت |
 | --- | --- | --- | --- |
-| ManhwaChi | fa | manhwachi.ir | build/lint و انتشار پس از راه‌اندازی کلید پایدار؛ آزمون واقعی نصب در Mihon هنوز لازم است |
+| ManhwaChi | fa | manhwachi.ir | مخزن امضاشده منتشر شده (1.6.2)؛ آزمون واقعی نصب در Mihon هنوز لازم است |
 
 ## وضعیت نسخهٔ منتشرشده — 2026-11-09
 
