@@ -98,8 +98,7 @@ abstract class ManhwaChi : KeiSource() {
         return MangasPage(results, start + results.size < mangas.size)
     }
 
-    private fun JsonObject.string(key: String): String? =
-        this[key]?.jsonPrimitive?.contentOrNull
+    private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
 
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
         val sourceUrl = baseUrl.toHttpUrl()
