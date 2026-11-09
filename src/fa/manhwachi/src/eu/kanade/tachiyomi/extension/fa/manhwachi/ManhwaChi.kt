@@ -32,6 +32,11 @@ abstract class ManhwaChi : KeiSource() {
         val englishTitle: String?,
     )
 
+    private data class CatalogChapter(
+        val number: Int,
+        val isFree: Boolean,
+    )
+
     private val slugRegex = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
     private val coverRegex = Regex("[A-Za-z0-9._-]+")
     private val imageBaseUrl = "https://img.manhwachi.ir"
@@ -140,36 +145,35 @@ abstract class ManhwaChi : KeiSource() {
         val slug = manga.url.substringAfter("/comic/", "").substringBefore('?').substringBefore('/')
         if (!slugRegex.matches(slug)) return emptyList()
 
-        return fetchPublicChapterNumbers(slug).map { number ->
+        return fetchCatalogChapters(slug).map { chapter ->
             SChapter.create().apply {
-                setUrlWithoutDomain("$baseUrl/reader.html?slug=$slug&ch=$number")
-                name = "چپتر $number"
-                chapter_number = number.toFloat()
+                setUrlWithoutDomain("$baseUrl/reader.html?slug=$slug&ch=${chapter.number}")
+                name = if (chapter.isFree) {
+                    "چپتر ${chapter.number}"
+                } else {
+                    "چپتر ${chapter.number} (قفل‌شده)"
+                }
+                chapter_number = chapter.number.toFloat()
                 date_upload = 0L
             }
         }.sortedByDescending { it.chapter_number }
     }
 
-    private suspend fun fetchPublicChapterNumbers(slug: String): Set<Int> {
-        if (!slugRegex.matches(slug)) return emptySet()
+    private suspend fun fetchCatalogChapters(slug: String): List<CatalogChapter> {
+        if (!slugRegex.matches(slug)) return emptyList()
 
         val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
-        val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptySet()
+        val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptyList()
 
-        val access = client.get("$baseUrl/api/access/chapters/$slug".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
-        val lockedEntries = access.getArrayOrNull("locked")
-            ?: throw IllegalStateException("وضعیت دسترسی فصل‌ها قابل بررسی نیست؛ برای جلوگیری از نمایش فصل قفل‌شده دوباره تلاش کنید.")
-        val locked = lockedEntries.map { entry ->
-            (entry as? JsonObject)?.getIntOrNull("num")
-                ?: throw IllegalStateException("پاسخ وضعیت قفل فصل‌ها نامعتبر است؛ هیچ فصلی نمایش داده نمی‌شود.")
-        }.toSet()
-
+        // Trust the catalog's per-episode free flag for classification. The separate
+        // access endpoint can incorrectly classify free entries as locked, hiding
+        // valid chapters such as chapters 1 and 2 of «خطای دی. پژواک».
         return episodes.mapNotNull { element ->
             val episode = element as? JsonObject ?: return@mapNotNull null
             val number = episode.getIntOrNull("num")?.takeIf { it > 0 } ?: return@mapNotNull null
-            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull == "true"
-            number.takeIf { isFree && number !in locked }
-        }.toSet()
+            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull.equals("true", ignoreCase = true)
+            CatalogChapter(number, isFree)
+        }.distinctBy { it.number }
     }
 
     private fun parseDetails(document: Document) = SManga.create().apply {
@@ -199,10 +203,10 @@ abstract class ManhwaChi : KeiSource() {
         val number = chapterUrl.queryParameter("ch")?.toIntOrNull()?.takeIf { it > 0 }
             ?: throw IllegalStateException("شمارهٔ فصل در نشانی معتبر نیست.")
 
-        // Chapter lists can be cached by Mihon. Recheck public/free access immediately
-        // before opening the reader so a chapter locked since listing is not exposed.
-        check(number in fetchPublicChapterNumbers(slug)) {
-            "این فصل دیگر به‌صورت رایگان و عمومی قابل خواندن نیست."
+        // Recheck the catalog's free flag immediately before opening the reader.
+        // Listing locked chapter metadata must never grant access to its pages.
+        check(fetchCatalogChapters(slug).any { it.number == number && it.isFree }) {
+            "این فصل در حال حاضر به‌صورت رایگان و عمومی قابل خواندن نیست."
         }
 
         val document = client.get(chapterUrl, Fetch.DOCUMENT).asJsoup()
