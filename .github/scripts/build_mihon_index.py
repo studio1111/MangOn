@@ -70,9 +70,12 @@ def build_index(
         versionCode=int(info["versionCode"]),
         versionName=info["versionName"],
         contentWarning=WARNING_VALUES.get(int(info.get("contentWarning", 0)), index_pb2.CONTENT_WARNING_UNSPECIFIED),
+        # Mihon's official NetworkExtensionStore.Resources schema contains only
+        # apkUrl (field 1) and iconUrl (field 2). Keep the signed JAR published
+        # as a repository asset, but do not inject the non-standard field 501
+        # into index.pb; strict protobuf consumers may reject unknown fields.
         resources=index_pb2.Resources(
             apkUrl=f"{base_url.rstrip('/')}/apk/{quote(apk_name)}",
-            jarUrl=f"{base_url.rstrip('/')}/jar/{quote(jar_name)}",
             iconUrl=resolved_icon,
         ),
     )
