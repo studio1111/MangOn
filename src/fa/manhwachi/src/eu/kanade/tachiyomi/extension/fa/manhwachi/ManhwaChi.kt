@@ -16,51 +16,99 @@ import keiyoushi.utils.getIntOrNull
 import keiyoushi.utils.getObjectOrNull
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
 
 @Source
 abstract class ManhwaChi : KeiSource() {
+    private data class CatalogManga(
+        val manga: SManga,
+        val score: Float,
+        val latestChapter: Int,
+        val englishTitle: String?,
+    )
+
     private val slugRegex = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
+    private val coverRegex = Regex("[A-Za-z0-9._-]+")
+    private val imageBaseUrl = "https://img.manhwachi.ir"
+    private val pageSize = 20
 
     override suspend fun getPopularManga(page: Int): MangasPage {
-        if (page > 1) return MangasPage(emptyList(), false)
-        return parseCards(client.get("$baseUrl/search.html".toHttpUrl(), Fetch.DOCUMENT).asJsoup())
+        val mangas = fetchCatalogManga()
+            .sortedByDescending { it.score }
+            .map { it.manga }
+        return paginate(mangas, page)
     }
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
-        if (page > 1) return MangasPage(emptyList(), false)
-        return parseCards(client.get("$baseUrl/library-page.html".toHttpUrl(), Fetch.DOCUMENT).asJsoup())
+        val mangas = fetchCatalogManga()
+            .sortedWith(
+                compareByDescending<CatalogManga> { it.latestChapter }
+                    .thenByDescending { it.score },
+            )
+            .map { it.manga }
+        return paginate(mangas, page)
     }
 
     override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
-        if (page > 1 || query.isBlank()) return MangasPage(emptyList(), false)
-        val document = client.get("$baseUrl/search.html".toHttpUrl(), Fetch.DOCUMENT).asJsoup()
-        val results = parseCards(document).mangas.filter { it.title.contains(query.trim(), ignoreCase = true) }
-        return MangasPage(results, false)
+        if (query.isBlank()) return MangasPage(emptyList(), false)
+        val normalizedQuery = query.trim()
+        val mangas = fetchCatalogManga()
+            .filter { item ->
+                item.manga.title.contains(normalizedQuery, ignoreCase = true) ||
+                    item.englishTitle.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
+                    item.manga.description.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
+                    item.manga.genre.orEmpty().contains(normalizedQuery, ignoreCase = true)
+            }
+            .map { it.manga }
+        return paginate(mangas, page)
     }
 
-    private fun parseCards(document: Document): MangasPage {
-        val cards = document.select("#manhwaGrid .manhwa-card, #top a.card, .cards a.card")
-        val mangas = cards.mapNotNull { card ->
-            val href = card.attr("data-link").ifBlank { card.attr("href") }
-            if (href.isBlank()) return@mapNotNull null
-            val title = card.selectFirst(".manhwa-title, h3")?.text()?.trim().orEmpty()
-            if (title.isBlank()) return@mapNotNull null
-            SManga.create().apply {
-                setUrlWithoutDomain(card.absUrlOrRaw(href))
+    private suspend fun fetchCatalogManga(): List<CatalogManga> {
+        val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
+        return catalog.entries.mapNotNull { (slug, value) ->
+            if (!slugRegex.matches(slug)) return@mapNotNull null
+            val entry = value as? JsonObject ?: return@mapNotNull null
+            val englishTitle = entry.string("title_en")?.takeIf(String::isNotBlank)
+            val title = entry.string("title_fa")
+                ?.takeIf(String::isNotBlank)
+                ?: englishTitle
+                ?: return@mapNotNull null
+            val cover = entry.string("cover_image")?.takeIf(coverRegex::matches)
+            val genres = entry.getArrayOrNull("genres")
+                ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+                .orEmpty()
+            val episodes = entry.getArrayOrNull("episodes").orEmpty()
+            val latestChapter = episodes.maxOfOrNull { episode ->
+                (episode as? JsonObject)?.getIntOrNull("num")?.takeIf { it > 0 } ?: 0
+            } ?: 0
+            val score = entry.string("score")?.toFloatOrNull() ?: 0f
+
+            val manga = SManga.create().apply {
+                setUrlWithoutDomain("$baseUrl/comic/$slug")
                 this.title = title
-                thumbnail_url = card.selectFirst("img")?.absUrl("src")?.takeIf(String::isNotBlank)
-                description = card.selectFirst(".synopsis")?.text()?.trim()
-                genre = card.select(".genre").joinToString { it.text() }.takeIf(String::isNotBlank)
+                thumbnail_url = cover?.let { "$imageBaseUrl/manhwas/$slug/$it" }
+                description = entry.string("description")
+                genre = genres.joinToString().takeIf(String::isNotBlank)
             }
-        }.distinctBy { it.url }
-        return MangasPage(mangas, false)
+            CatalogManga(manga, score, latestChapter, englishTitle)
+        }.distinctBy { it.manga.url }
     }
+
+    private fun paginate(mangas: List<SManga>, page: Int): MangasPage {
+        if (page < 1) return MangasPage(emptyList(), false)
+        val startLong = (page.toLong() - 1L) * pageSize
+        if (startLong >= mangas.size) return MangasPage(emptyList(), false)
+        val start = startLong.toInt()
+        val results = mangas.drop(start).take(pageSize)
+        return MangasPage(results, start + results.size < mangas.size)
+    }
+
+    private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
 
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
         val sourceUrl = baseUrl.toHttpUrl()
@@ -166,8 +214,4 @@ abstract class ManhwaChi : KeiSource() {
         }
         return images.distinct().mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
     }
-
-    private fun Element.absUrlOrRaw(href: String): String = absUrl("data-link").takeIf(String::isNotBlank)
-        ?: absUrl("href").takeIf(String::isNotBlank)
-        ?: href
 }
