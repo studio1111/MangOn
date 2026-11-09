@@ -52,7 +52,10 @@ class BuildMihonIndexTests(unittest.TestCase):
         self.assertEqual(ext.packageName, "eu.kanade.tachiyomi.extension.fa.manhwachi")
         self.assertEqual(ext.sources[0].language, "fa")
         self.assertTrue(ext.resources.apkUrl.endswith("/apk/test.apk"))
-        self.assertTrue(ext.resources.jarUrl.endswith("/jar/test.jar"))
+        self.assertEqual(ext.resources.jarUrl, "")
+        json_index = json.loads((self.output / "index.json").read_text(encoding="utf-8"))
+        json_resources = json_index["extensionList"]["extensions"][0]["resources"]
+        self.assertNotIn("jarUrl", json_resources)
         self.assertEqual((self.output / "apk/test.apk").read_bytes(), b"apk")
         self.assertEqual((self.output / "jar/test.jar").read_bytes(), b"jar")
         self.assertTrue((self.output / "index.json").is_file())

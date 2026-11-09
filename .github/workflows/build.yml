@@ -237,7 +237,9 @@ jobs:
           assert extension.packageName == "eu.kanade.tachiyomi.extension.fa.manhwachi"
           assert extension.sources and extension.sources[0].language == "fa"
 
-          for asset_url in (extension.resources.apkUrl, extension.resources.jarUrl):
+          # Mihon's v2 Resources model exposes apkUrl and iconUrl only.
+          # The signed JAR remains published for tooling, not in the Mihon index.
+          for asset_url in (extension.resources.apkUrl,):
               assert asset_url.startswith("https://raw.githubusercontent.com/studio1111/MangOn/repo/")
               subprocess.run(
                   ["curl", "--fail", "--silent", "--show-error", "--retry", "5",
