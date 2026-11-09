@@ -36,7 +36,7 @@ https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json
 - اولین انتشار امضاشدهٔ مخزن Mihon در شاخهٔ repo تأیید شده است؛ [اجرای انتشار #62](https://github.com/studio1111/MangOn/actions/runs/42659789672) build، lint، امضای APK/JAR، تولید index.pb و بررسی میزبانی را با موفقیت گذراند.
 - نسخهٔ فعلی ManhwaChi در مخزن: **1.6.2** با versionCode=2. فایل APK و JAR در شاخهٔ repo قرار دارند؛ انتشار در GitHub Releases به‌صورت tag انجام نشده است.
 - برای افزودن مخزن از نشانی بالا استفاده کنید. نصب و آزمون واقعی روی دستگاه Mihon هنوز انجام نشده است.
-- [PR #14](https://github.com/studio1111/MangOn/pull/14) باز است و نسخهٔ آزمایشی با versionCode=3 را می‌سازد. این تغییر همهٔ فصل‌های کاتالوگ را در فهرست نشان می‌دهد و فصل‌های غیررایگان را با برچسب «قفل‌شده» مشخص می‌کند؛ قفل یا اشتراک را باز نمی‌کند. CI آن در [run #64](https://github.com/studio1111/MangOn/actions/runs/42668156383) موفق است، اما تا ادغام PR در مخزن منتشر نشده است.
+- [PR #14](https://github.com/studio1111/MangOn/pull/14) باز و mergeable است؛ نسخهٔ آزمایشی با versionCode=3 همهٔ فصل‌های کاتالوگ را نمایش می‌دهد. فصل فقط وقتی باز می‌شود که هم `free=true` باشد و هم API دسترسی آن را قفل‌شده اعلام نکند؛ در خطای API وضعیت «نامشخص» نمایش داده می‌شود و بازکردن مسدود است. CI در [run #65](https://github.com/studio1111/MangOn/actions/runs/42674771102) موفق است، اما PR هنوز ادغام و منتشر نشده است.
 
 ## وضعیت فعلی ManhwaChi
 
