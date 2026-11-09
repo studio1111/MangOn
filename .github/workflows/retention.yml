@@ -6,6 +6,10 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/retention.yml"
+  # Run cleanup immediately after every build, including PR validation runs.
+  workflow_run:
+    workflows: ["Build and publish MangOn Mihon repository"]
+    types: [completed]
   schedule:
     - cron: "43 4 * * *"
 
