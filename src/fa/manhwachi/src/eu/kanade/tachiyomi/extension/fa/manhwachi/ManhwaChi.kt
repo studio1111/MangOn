@@ -15,10 +15,12 @@ import keiyoushi.utils.getIntOrNull
 import keiyoushi.utils.getObjectOrNull
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.jsoup.nodes.Document
 
 @Source
 abstract class ManhwaChi : KeiSource() {
@@ -37,7 +39,7 @@ abstract class ManhwaChi : KeiSource() {
     override suspend fun getLatestUpdates(page: Int): MangasPage {
         val mangas = fetchCatalogManga()
             .sortedWith(
-                compareByDescending<Pair<SManga, Float>> { it.third }
+                compareByDescending<Triple<SManga, Float, Int>> { it.third }
                     .thenByDescending { it.second },
             )
             .map { it.first }
@@ -68,7 +70,7 @@ abstract class ManhwaChi : KeiSource() {
                 ?: return@mapNotNull null
             val cover = entry.string("cover_image")?.takeIf(coverRegex::matches)
             val genres = entry.getArrayOrNull("genres")
-                ?.mapNotNull { it.jsonPrimitive.contentOrNull }
+                ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
                 .orEmpty()
             val episodes = entry.getArrayOrNull("episodes").orEmpty()
             val latestChapter = episodes.firstNotNullOfOrNull { episode ->
@@ -105,9 +107,7 @@ abstract class ManhwaChi : KeiSource() {
         ) {
             return null
         }
-        val document = client.get(url, Fetch.DOCUMENT).let { response ->
-            response.body.string()
-        }
+        val document = client.get(url, Fetch.DOCUMENT).asJsoup()
         return parseDetails(document).apply { this.url = url.encodedPath }
     }
 
@@ -118,9 +118,7 @@ abstract class ManhwaChi : KeiSource() {
         fetchChapters: Boolean,
     ): SMangaUpdate {
         val details = if (fetchDetails) {
-            client.get(getMangaUrl(manga), Fetch.DOCUMENT).let { response ->
-                parseDetails(response.body.string())
-            }
+            client.get(getMangaUrl(manga), Fetch.DOCUMENT).asJsoup().let(::parseDetails)
         } else {
             SManga.create()
         }
@@ -164,8 +162,7 @@ abstract class ManhwaChi : KeiSource() {
         }.toSet()
     }
 
-    private fun parseDetails(html: String) = SManga.create().apply {
-        val document = org.jsoup.Jsoup.parse(html, baseUrl)
+    private fun parseDetails(document: Document) = SManga.create().apply {
         title = document.selectFirst("#faSubtitle")?.text()?.trim()
             ?.takeIf(String::isNotBlank)
             ?: document.selectFirst("#manhwaTitle")?.text()?.trim().orEmpty()
@@ -198,9 +195,7 @@ abstract class ManhwaChi : KeiSource() {
             "این فصل دیگر به‌صورت رایگان و عمومی قابل خواندن نیست."
         }
 
-        val document = client.get(chapterUrl, Fetch.DOCUMENT).let { response ->
-            org.jsoup.Jsoup.parse(response.body.string(), chapterUrl.toString())
-        }
+        val document = client.get(chapterUrl, Fetch.DOCUMENT).asJsoup()
         val images = document.select("#reader .manhwa-panel img[src]")
             .map { it.absUrl("src") }
             .filter(String::isNotBlank)
