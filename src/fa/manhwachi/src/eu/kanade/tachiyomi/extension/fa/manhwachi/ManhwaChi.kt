@@ -25,6 +25,13 @@ import org.jsoup.nodes.Document
 
 @Source
 abstract class ManhwaChi : KeiSource() {
+    private data class CatalogManga(
+        val manga: SManga,
+        val score: Float,
+        val latestChapter: Int,
+        val englishTitle: String?,
+    )
+
     private val slugRegex = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
     private val coverRegex = Regex("[A-Za-z0-9._-]+")
     private val imageBaseUrl = "https://img.manhwachi.ir"
@@ -32,18 +39,18 @@ abstract class ManhwaChi : KeiSource() {
 
     override suspend fun getPopularManga(page: Int): MangasPage {
         val mangas = fetchCatalogManga()
-            .sortedByDescending { it.second }
-            .map { it.first }
+            .sortedByDescending { it.score }
+            .map { it.manga }
         return paginate(mangas, page)
     }
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
         val mangas = fetchCatalogManga()
             .sortedWith(
-                compareByDescending<Triple<SManga, Float, Int>> { it.third }
-                    .thenByDescending { it.second },
+                compareByDescending<CatalogManga> { it.latestChapter }
+                    .thenByDescending { it.score },
             )
-            .map { it.first }
+            .map { it.manga }
         return paginate(mangas, page)
     }
 
@@ -51,31 +58,33 @@ abstract class ManhwaChi : KeiSource() {
         if (query.isBlank()) return MangasPage(emptyList(), false)
         val normalizedQuery = query.trim()
         val mangas = fetchCatalogManga()
-            .filter { (manga, _, _) ->
-                manga.title.contains(normalizedQuery, ignoreCase = true) ||
-                    manga.description.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
-                    manga.genre.orEmpty().contains(normalizedQuery, ignoreCase = true)
+            .filter { item ->
+                item.manga.title.contains(normalizedQuery, ignoreCase = true) ||
+                    item.englishTitle.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
+                    item.manga.description.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
+                    item.manga.genre.orEmpty().contains(normalizedQuery, ignoreCase = true)
             }
-            .map { it.first }
+            .map { it.manga }
         return paginate(mangas, page)
     }
 
-    private suspend fun fetchCatalogManga(): List<Triple<SManga, Float, Int>> {
+    private suspend fun fetchCatalogManga(): List<CatalogManga> {
         val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
         return catalog.entries.mapNotNull { (slug, value) ->
             if (!slugRegex.matches(slug)) return@mapNotNull null
             val entry = value as? JsonObject ?: return@mapNotNull null
+            val englishTitle = entry.string("title_en")?.takeIf(String::isNotBlank)
             val title = entry.string("title_fa")
                 ?.takeIf(String::isNotBlank)
-                ?: entry.string("title_en")?.takeIf(String::isNotBlank)
+                ?: englishTitle
                 ?: return@mapNotNull null
             val cover = entry.string("cover_image")?.takeIf(coverRegex::matches)
             val genres = entry.getArrayOrNull("genres")
                 ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
                 .orEmpty()
             val episodes = entry.getArrayOrNull("episodes").orEmpty()
-            val latestChapter = episodes.firstNotNullOfOrNull { episode ->
-                (episode as? JsonObject)?.getIntOrNull("num")?.takeIf { it > 0 }
+            val latestChapter = episodes.maxOfOrNull { episode ->
+                (episode as? JsonObject)?.getIntOrNull("num")?.takeIf { it > 0 } ?: 0
             } ?: 0
             val score = entry.string("score")?.toFloatOrNull() ?: 0f
 
@@ -86,14 +95,15 @@ abstract class ManhwaChi : KeiSource() {
                 description = entry.string("description")
                 genre = genres.joinToString().takeIf(String::isNotBlank)
             }
-            Triple(manga, score, latestChapter)
-        }.distinctBy { it.first.url }
+            CatalogManga(manga, score, latestChapter, englishTitle)
+        }.distinctBy { it.manga.url }
     }
 
     private fun paginate(mangas: List<SManga>, page: Int): MangasPage {
         if (page < 1) return MangasPage(emptyList(), false)
-        val start = (page - 1) * pageSize
-        if (start >= mangas.size) return MangasPage(emptyList(), false)
+        val startLong = (page.toLong() - 1L) * pageSize
+        if (startLong >= mangas.size) return MangasPage(emptyList(), false)
+        val start = startLong.toInt()
         val results = mangas.drop(start).take(pageSize)
         return MangasPage(results, start + results.size < mangas.size)
     }
