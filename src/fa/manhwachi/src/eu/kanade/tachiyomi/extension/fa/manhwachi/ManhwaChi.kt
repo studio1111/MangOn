@@ -21,6 +21,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.jsoup.nodes.Document
 
 @Source
@@ -32,9 +33,15 @@ abstract class ManhwaChi : KeiSource() {
         val englishTitle: String?,
     )
 
+    private enum class ChapterAccess {
+        FREE,
+        LOCKED,
+        UNKNOWN,
+    }
+
     private data class CatalogChapter(
         val number: Int,
-        val isFree: Boolean,
+        val access: ChapterAccess,
     )
 
     private val slugRegex = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
@@ -148,10 +155,10 @@ abstract class ManhwaChi : KeiSource() {
         return fetchCatalogChapters(slug).map { chapter ->
             SChapter.create().apply {
                 setUrlWithoutDomain("$baseUrl/reader.html?slug=$slug&ch=${chapter.number}")
-                name = if (chapter.isFree) {
-                    "چپتر ${chapter.number}"
-                } else {
-                    "چپتر ${chapter.number} (قفل‌شده)"
+                name = when (chapter.access) {
+                    ChapterAccess.FREE -> "چپتر ${chapter.number}"
+                    ChapterAccess.LOCKED -> "چپتر ${chapter.number} (قفل‌شده)"
+                    ChapterAccess.UNKNOWN -> "چپتر ${chapter.number} (وضعیت نامشخص)"
                 }
                 chapter_number = chapter.number.toFloat()
                 date_upload = 0L
@@ -164,16 +171,37 @@ abstract class ManhwaChi : KeiSource() {
 
         val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
         val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptyList()
+        val locked = fetchLockedChapterNumbers(slug)
 
-        // Trust the catalog's per-episode free flag for classification. The separate
-        // access endpoint can incorrectly classify free entries as locked, hiding
-        // valid chapters such as chapters 1 and 2 of «خطای دی. پژواک».
         return episodes.mapNotNull { element ->
             val episode = element as? JsonObject ?: return@mapNotNull null
             val number = episode.getIntOrNull("num")?.takeIf { it > 0 } ?: return@mapNotNull null
-            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull.equals("true", ignoreCase = true)
-            CatalogChapter(number, isFree)
+            val isCatalogFree = episode["free"]?.jsonPrimitive?.contentOrNull.equals("true", ignoreCase = true)
+            val access = when {
+                !isCatalogFree -> ChapterAccess.LOCKED
+                locked == null -> ChapterAccess.UNKNOWN
+                number in locked -> ChapterAccess.LOCKED
+                else -> ChapterAccess.FREE
+            }
+            CatalogChapter(number, access)
         }.distinctBy { it.number }
+    }
+
+    private suspend fun fetchLockedChapterNumbers(slug: String): Set<Int>? {
+        return try {
+            val access = client.get("$baseUrl/api/access/chapters/$slug".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
+            val entries = access.getArrayOrNull("locked") ?: return null
+            val locked = mutableSetOf<Int>()
+            for (entry in entries) {
+                val number = (entry as? JsonObject)?.getIntOrNull("num") ?: return null
+                locked.add(number)
+            }
+            locked
+        } catch (error: java.util.concurrent.CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun parseDetails(document: Document) = SManga.create().apply {
@@ -187,35 +215,26 @@ abstract class ManhwaChi : KeiSource() {
     }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val chapterUrl = getChapterUrl(chapter).toHttpUrl()
+        val chapterUrl = getChapterUrl(chapter).toHttpUrlOrNull() ?: return emptyList()
         val sourceUrl = baseUrl.toHttpUrl()
-        check(
-            chapterUrl.scheme == sourceUrl.scheme &&
-                chapterUrl.host == sourceUrl.host &&
-                chapterUrl.port == sourceUrl.port &&
-                chapterUrl.encodedPath == "/reader.html",
+        if (
+            chapterUrl.scheme != sourceUrl.scheme ||
+            chapterUrl.host != sourceUrl.host ||
+            chapterUrl.port != sourceUrl.port ||
+            chapterUrl.encodedPath != "/reader.html"
         ) {
-            "نشانی فصل معتبر نیست."
+            return emptyList()
         }
-        val slug = chapterUrl.queryParameter("slug")
-            ?.takeIf(slugRegex::matches)
-            ?: throw IllegalStateException("شناسهٔ اثر در نشانی فصل معتبر نیست.")
-        val number = chapterUrl.queryParameter("ch")?.toIntOrNull()?.takeIf { it > 0 }
-            ?: throw IllegalStateException("شمارهٔ فصل در نشانی معتبر نیست.")
-
-        // Recheck the catalog's free flag immediately before opening the reader.
-        // Listing locked chapter metadata must never grant access to its pages.
-        check(fetchCatalogChapters(slug).any { it.number == number && it.isFree }) {
-            "این فصل در حال حاضر به‌صورت رایگان و عمومی قابل خواندن نیست."
-        }
+        val slug = chapterUrl.queryParameter("slug")?.takeIf(slugRegex::matches) ?: return emptyList()
+        val number = chapterUrl.queryParameter("ch")?.toIntOrNull()?.takeIf { it > 0 } ?: return emptyList()
+        val currentChapter = fetchCatalogChapters(slug).firstOrNull { it.number == number } ?: return emptyList()
+        if (currentChapter.access != ChapterAccess.FREE) return emptyList()
 
         val document = client.get(chapterUrl, Fetch.DOCUMENT).asJsoup()
         val images = document.select("#reader .manhwa-panel img[src]")
             .map { it.absUrl("src") }
             .filter(String::isNotBlank)
-        check(images.isNotEmpty()) {
-            "این فصل در حال حاضر به‌صورت عمومی قابل خواندن نیست یا ساختار صفحه تغییر کرده است."
-        }
-        return images.distinct().mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
+            .distinct()
+        return images.mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
     }
 }
