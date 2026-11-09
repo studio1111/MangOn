@@ -10,6 +10,7 @@ import keiyoushi.annotation.Source
 import keiyoushi.network.Fetch
 import keiyoushi.network.get
 import keiyoushi.source.KeiSource
+import keiyoushi.utils.asJsoup
 import keiyoushi.utils.getArrayOrNull
 import keiyoushi.utils.getIntOrNull
 import keiyoushi.utils.getObjectOrNull
