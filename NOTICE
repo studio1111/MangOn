@@ -1,0 +1,13 @@
+MangOn includes a Persian-only adaptation of the GlobalComix Mihon extension from:
+https://github.com/keiyoushi/extensions-source
+
+Upstream snapshot: ee661f5233b346559fbdd53993d447c318c5aef0
+Upstream license: Apache License 2.0 (see LICENSES/Apache-2.0.txt).
+
+Adaptations in src/fa/globalcomix:
+- Restricts the extension registration to Persian (fa).
+- Validates GlobalComix manga URLs as HTTPS and on the expected host/path.
+- Returns no reader pages for premium chapters, missing page payloads, or individual paid pages.
+- Filters image URLs to HTTPS.
+
+The original Keiyoushi source and its DTO structure remain attributed to their upstream project.

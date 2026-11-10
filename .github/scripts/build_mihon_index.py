@@ -22,6 +22,43 @@ WARNING_VALUES = {
 }
 
 
+def _load_metadata(path: Path) -> dict:
+    info = json.loads(path.read_text(encoding="utf-8"))
+    required = ("name", "packageName", "versionCode", "versionName", "extensionLib", "sources")
+    missing = [key for key in required if key not in info]
+    if missing:
+        raise ValueError(f"{path}: source metadata missing required fields: {', '.join(missing)}")
+    if not isinstance(info["sources"], list) or not info["sources"]:
+        raise ValueError(f"{path}: at least one source is required")
+    if not isinstance(info["packageName"], str) or not info["packageName"].strip():
+        raise ValueError(f"{path}: packageName must be a non-empty string")
+    return info
+
+
+def _copy_release_assets(info_path: Path, output_dir: Path) -> tuple[str, str]:
+    apk_files = sorted(info_path.parent.rglob("*.apk"))
+    jar_files = sorted(info_path.parent.rglob("*.jar"))
+    if len(apk_files) != 1 or len(jar_files) != 1:
+        raise ValueError(
+            f"{info_path.parent}: expected one release APK and one signed JAR; "
+            f"found {len(apk_files)} APK(s), {len(jar_files)} JAR(s)"
+        )
+
+    apk_dir, jar_dir = output_dir / "apk", output_dir / "jar"
+    apk_dir.mkdir(parents=True, exist_ok=True)
+    jar_dir.mkdir(parents=True, exist_ok=True)
+    apk_name, jar_name = apk_files[0].name, jar_files[0].name
+    for directory, filename, source in (
+        (apk_dir, apk_name, apk_files[0]),
+        (jar_dir, jar_name, jar_files[0]),
+    ):
+        target = directory / filename
+        if target.exists():
+            raise ValueError(f"Duplicate release asset filename would overwrite another module: {filename}")
+        target.write_bytes(source.read_bytes())
+    return apk_name, jar_name
+
+
 def build_index(
     artifacts_dir: Path,
     output_dir: Path,
@@ -35,66 +72,61 @@ def build_index(
         raise ValueError("Repository and icon URLs must use HTTPS")
 
     metadata_files = sorted(artifacts_dir.rglob("keiyoushi-source-info.json"))
-    if len(metadata_files) != 1:
-        raise ValueError(f"Expected exactly one source-info JSON, found {len(metadata_files)}")
+    if not metadata_files:
+        raise ValueError("No keiyoushi-source-info.json files were found")
 
-    info_path = metadata_files[0]
-    info = json.loads(info_path.read_text(encoding="utf-8"))
-    required = ("name", "packageName", "versionCode", "versionName", "extensionLib", "sources")
-    missing = [key for key in required if key not in info]
-    if missing:
-        raise ValueError(f"Source metadata missing required fields: {', '.join(missing)}")
-    if not info["sources"]:
-        raise ValueError("At least one source is required")
-
-    apk_files = sorted(info_path.parent.rglob("*.apk"))
-    jar_files = sorted(info_path.parent.rglob("*.jar"))
-    if len(apk_files) != 1 or len(jar_files) != 1:
-        raise ValueError(f"Expected one release APK and one signed JAR; found {len(apk_files)} APK(s), {len(jar_files)} JAR(s)")
-
-    apk_name, jar_name = apk_files[0].name, jar_files[0].name
     output_dir.mkdir(parents=True, exist_ok=True)
-    apk_dir, jar_dir = output_dir / "apk", output_dir / "jar"
-    apk_dir.mkdir(exist_ok=True)
-    jar_dir.mkdir(exist_ok=True)
-    (apk_dir / apk_name).write_bytes(apk_files[0].read_bytes())
-    (jar_dir / jar_name).write_bytes(jar_files[0].read_bytes())
-
     upstream_icon = "https://raw.githubusercontent.com/keiyoushi/extensions-source/ee661f5233b346559fbdd53993d447c318c5aef0/core/src/main/res/mipmap-xhdpi/ic_launcher.png"
     resolved_icon = icon_url or upstream_icon
-
-    extension = index_pb2.Extension(
-        name=info["name"],
-        packageName=info["packageName"],
-        extensionLib=info["extensionLib"],
-        versionCode=int(info["versionCode"]),
-        versionName=info["versionName"],
-        contentWarning=WARNING_VALUES.get(int(info.get("contentWarning", 0)), index_pb2.CONTENT_WARNING_UNSPECIFIED),
-        # Mihon's official NetworkExtensionStore.Resources schema contains only
-        # apkUrl (field 1) and iconUrl (field 2). Keep the signed JAR published
-        # as a repository asset, but do not inject the non-standard field 501
-        # into index.pb; strict protobuf consumers may reject unknown fields.
-        resources=index_pb2.Resources(
-            apkUrl=f"{base_url.rstrip('/')}/apk/{quote(apk_name)}",
-            iconUrl=resolved_icon,
-        ),
-    )
-    for source in info["sources"]:
-        extension.sources.add(
-            id=int(source["id"]),
-            name=source["name"],
-            language=source["lang"],
-            homeUrl=source["baseUrl"],
-            mirrorUrls=source.get("mirrorUrls", []),
-        )
-
     index = index_pb2.Index(
         name="MangOn",
         badgeLabel="MANGON",
         signingKey=signing_key,
         contact=index_pb2.Contact(website="https://github.com/studio1111/MangOn"),
     )
-    index.extensionList.extensions.add().CopyFrom(extension)
+
+    seen_packages: set[str] = set()
+    for info_path in metadata_files:
+        info = _load_metadata(info_path)
+        package_name = info["packageName"]
+        if package_name in seen_packages:
+            raise ValueError(f"Duplicate extension packageName in build metadata: {package_name}")
+        seen_packages.add(package_name)
+
+        apk_name, _ = _copy_release_assets(info_path, output_dir)
+        extension = index_pb2.Extension(
+            name=info["name"],
+            packageName=package_name,
+            extensionLib=info["extensionLib"],
+            versionCode=int(info["versionCode"]),
+            versionName=info["versionName"],
+            contentWarning=WARNING_VALUES.get(
+                int(info.get("contentWarning", 0)),
+                index_pb2.CONTENT_WARNING_UNSPECIFIED,
+            ),
+            # Mihon's official NetworkExtensionStore.Resources schema contains only
+            # apkUrl (field 1) and iconUrl (field 2). Keep signed JARs published
+            # as repository assets, but do not inject non-standard fields.
+            resources=index_pb2.Resources(
+                apkUrl=f"{base_url.rstrip('/')}/apk/{quote(apk_name)}",
+                iconUrl=resolved_icon,
+            ),
+        )
+        for source in info["sources"]:
+            required_source = ("id", "name", "lang", "baseUrl")
+            missing_source = [key for key in required_source if key not in source]
+            if missing_source:
+                raise ValueError(
+                    f"{info_path}: source metadata missing required fields: {', '.join(missing_source)}"
+                )
+            extension.sources.add(
+                id=int(source["id"]),
+                name=source["name"],
+                language=source["lang"],
+                homeUrl=source["baseUrl"],
+                mirrorUrls=source.get("mirrorUrls", []),
+            )
+        index.extensionList.extensions.add().CopyFrom(extension)
 
     (output_dir / "index.json").write_text(
         json_format.MessageToJson(

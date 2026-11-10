@@ -50,8 +50,16 @@ jobs:
           from pathlib import Path
           settings = Path("upstream/settings.gradle.kts")
           content = settings.read_text()
+          modules = sorted(
+              path.name for path in Path("mangon/src/fa").iterdir()
+              if path.is_dir() and (path / "build.gradle.kts").is_file()
+          )
+          if not modules:
+              raise SystemExit("No valid MangOn extension modules found under src/fa")
           old = "loadAllIndividualExtensions()"
-          new = 'loadIndividualExtension("fa", "manhwachi")'
+          new = "\n".join(
+              f'loadIndividualExtension("fa", "{module}")' for module in modules
+          )
           if old not in content:
               raise SystemExit("Keiyoushi settings layout changed")
           settings.write_text(content.replace(old, new, 1))
@@ -98,7 +106,21 @@ jobs:
         if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
         working-directory: upstream
         run: |
-          ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon
+          python - <<'PY' > /tmp/gradle-tasks
+          from pathlib import Path
+          modules = sorted(
+              path.name for path in Path("../mangon/src/fa").iterdir()
+              if path.is_dir() and (path / "build.gradle.kts").is_file()
+          )
+          if not modules:
+              raise SystemExit("No valid MangOn extension modules found")
+          print("spotlessCheck")
+          for module in modules:
+              print(f":src:fa:{module}:assembleRelease")
+              print(f":src:fa:{module}:lintRelease")
+          PY
+          mapfile -t gradle_tasks < /tmp/gradle-tasks
+          ./gradlew "${gradle_tasks[@]}" --no-daemon
 
       - name: Build and lint release (signed publish)
         if: github.ref == 'refs/heads/main'
@@ -110,7 +132,20 @@ jobs:
         run: |
           set -euo pipefail
           test -s signingkey.jks || { echo "::error::Stable signing keystore is missing from the upstream Gradle root"; exit 1; }
-          ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon --no-configuration-cache
+          python - <<'PY' > /tmp/gradle-tasks
+          from pathlib import Path
+          modules = sorted(
+              path.name for path in Path("../mangon/src/fa").iterdir()
+              if path.is_dir() and (path / "build.gradle.kts").is_file()
+          )
+          if not modules:
+              raise SystemExit("No valid MangOn extension modules found")
+          for module in modules:
+              print(f":src:fa:{module}:assembleRelease")
+              print(f":src:fa:{module}:lintRelease")
+          PY
+          mapfile -t gradle_tasks < /tmp/gradle-tasks
+          ./gradlew "${gradle_tasks[@]}" --no-daemon --no-configuration-cache
 
       - name: Verify APK and extension JAR signatures
         if: github.ref == 'refs/heads/main'
@@ -119,26 +154,29 @@ jobs:
           EXPECTED_FINGERPRINT: ${{ steps.signing.outputs.signing_key }}
         run: |
           set -euo pipefail
-          mapfile -t apks < <(find src/fa/manhwachi/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print | sort)
-          mapfile -t jars < <(find src/fa/manhwachi/build/outputs/jar/release -maxdepth 1 -type f -name '*.jar' -print | sort)
-          [[ "${#apks[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release APK, found ${#apks[@]}"; exit 1; }
-          [[ "${#jars[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release JAR, found ${#jars[@]}"; exit 1; }
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$apksigner" || { echo "::error::Android apksigner was not found"; exit 1; }
-          python ../mangon/.github/scripts/verify_release_signatures.py \
-            --expected "$EXPECTED_FINGERPRINT" \
-            --apk "${apks[0]}" \
-            --jar "${jars[0]}" \
-            --apksigner "$apksigner"
+          while IFS= read -r module; do
+            module_dir="src/fa/$module"
+            mapfile -t apks < <(find "$module_dir/build/outputs/apk/release" -maxdepth 1 -type f -name '*.apk' -print | sort)
+            mapfile -t jars < <(find "$module_dir/build/outputs/jar/release" -maxdepth 1 -type f -name '*.jar' -print | sort)
+            [[ "${#apks[@]}" -eq 1 ]] || { echo "::error::$module: expected one release APK, found ${#apks[@]}"; exit 1; }
+            [[ "${#jars[@]}" -eq 1 ]] || { echo "::error::$module: expected one release JAR, found ${#jars[@]}"; exit 1; }
+            python ../mangon/.github/scripts/verify_release_signatures.py \
+              --expected "$EXPECTED_FINGERPRINT" \
+              --apk "${apks[0]}" \
+              --jar "${jars[0]}" \
+              --apksigner "$apksigner"
+          done < <(find ../mangon/src/fa -mindepth 2 -maxdepth 2 -name build.gradle.kts -type f -printf '%h\n' | sed 's#../mangon/src/fa/##' | sort)
 
       - name: Upload release bundle
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: mangon-release-bundle
           path: |
-            upstream/src/fa/manhwachi/build/keiyoushi-source-info.json
-            upstream/src/fa/manhwachi/build/outputs/apk/release/*.apk
-            upstream/src/fa/manhwachi/build/outputs/jar/release/*.jar
+            upstream/src/fa/*/build/keiyoushi-source-info.json
+            upstream/src/fa/*/build/outputs/apk/release/*.apk
+            upstream/src/fa/*/build/outputs/jar/release/*.jar
           if-no-files-found: error
           retention-days: 7
 
@@ -232,14 +270,17 @@ jobs:
           assert index.name == "MangOn"
           assert index.signingKey == fingerprint and len(fingerprint) == 64
           extensions = list(index.extensionList.extensions)
-          assert len(extensions) == 1
-          extension = extensions[0]
-          assert extension.packageName == "eu.kanade.tachiyomi.extension.fa.manhwachi"
-          assert extension.sources and extension.sources[0].language == "fa"
+          assert extensions, "Mihon index must contain at least one extension"
+          package_names = [extension.packageName for extension in extensions]
+          assert len(package_names) == len(set(package_names)), "Duplicate extension package names"
+          for extension in extensions:
+            assert extension.packageName.startswith("eu.kanade.tachiyomi.extension.fa.")
+            assert extension.sources and all(source.language == "fa" for source in extension.sources)
 
           # Mihon's v2 Resources model exposes apkUrl and iconUrl only.
           # The signed JAR remains published for tooling, not in the Mihon index.
-          for asset_url in (extension.resources.apkUrl,):
+          for extension in extensions:
+              asset_url = extension.resources.apkUrl
               assert asset_url.startswith("https://raw.githubusercontent.com/studio1111/MangOn/repo/")
               subprocess.run(
                   ["curl", "--fail", "--silent", "--show-error", "--retry", "5",
@@ -247,5 +288,5 @@ jobs:
                    "--output", "/dev/null"],
                   check=True,
               )
-          print(f"Hosted repository verified: {len(extensions)} extension(s); descriptor, index, APK and JAR are reachable.")
+          print(f"Hosted repository verified: {len(extensions)} extension(s); descriptor, index and all APKs are reachable.")
           PY
