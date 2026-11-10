@@ -1,0 +1,59 @@
+name: REA Persian source reverse-engineering audit
+
+on:
+  push:
+    paths:
+      - ".github/workflows/rea-site-audit.yml"
+      - ".github/scripts/rea_site_audit.sh"
+      - "src/fa/**"
+      - "docs/source-catalog-fa.md"
+  pull_request:
+    paths:
+      - ".github/workflows/rea-site-audit.yml"
+      - ".github/scripts/rea_site_audit.sh"
+      - "src/fa/**"
+      - "docs/source-catalog-fa.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rea-site-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout MangOn
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up supported REA runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24.22.1"
+
+      - name: Install pinned official REA package
+        shell: bash
+        run: |
+          set -euo pipefail
+          install_root="\${RUNNER_TEMP}/rea-tool"
+          npm install --prefix "\${install_root}" --no-audit --no-fund --ignore-scripts --save-exact rea-agents@6.7.0
+          echo "\${install_root}/node_modules/.bin" >> "\${GITHUB_PATH}"
+
+      - name: Run REA against public catalogue, detail and reader pages
+        shell: bash
+        env:
+          REA_BROWSER_EXECUTABLE: /usr/bin/google-chrome
+          REA_BROWSER_NO_SANDBOX: "true"
+        run: |
+          bash .github/scripts/rea_site_audit.sh
+
+      - name: Upload original REA Evidence and diagnostics
+        if: \${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mangon-rea-site-audit
+          path: \${{ runner.temp }}/mangon-rea-audit/
+          if-no-files-found: warn
+          retention-days: 7
