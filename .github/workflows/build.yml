@@ -8,11 +8,13 @@ on:
       - ".github/workflows/build.yml"
       - ".github/scripts/**"
       - "tools/extension-forge/**"
+      - "tools/extension-forge/**"
   pull_request:
     paths:
       - "src/**"
       - ".github/workflows/build.yml"
       - ".github/scripts/**"
+      - "tools/extension-forge/**"
   workflow_dispatch:
 
 permissions:
