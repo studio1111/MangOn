@@ -2,7 +2,7 @@ name: Build and publish MangOn Mihon repository
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
     paths:
       - "src/**"
       - ".github/workflows/build.yml"
