@@ -26,7 +26,7 @@ Mihon فهرست افزونه‌ها را از `index.pb` دریافت می‌ک
 
 **Build و انتشار موفق**
 
-اجرای اصلی [Build #163](https://github.com/studio1111/MangOn/actions/runs/42815949140) در 2026-11-10 با موفقیت کامل شد:
+اجرای اصلی [Build #164](https://github.com/studio1111/MangOn/actions/runs/42817067965) در 2026-11-10 با موفقیت کامل شد:
 
 - آزمون‌های Python تولید index و آزمون چندافزونه‌ای؛
 - Spotless، assembleRelease و lintRelease برای تمام ماژول‌های فارسی؛
