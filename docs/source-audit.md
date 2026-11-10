@@ -32,7 +32,7 @@
 - Fingerprint فعال: `2922be3a3774a0e1dfb8ff1fc75e73e4637703d3243d7ddc7f1fdbcfd3b070dd`.
 - `repo.json` و `index.pb` در شاخهٔ `repo` موجودند. index شامل دقیقاً دو package فارسی است؛ APK/JARهای هر دو ماژول در شاخهٔ `repo` موجود و URLهای APK از workflow قابل‌دسترسی تأیید شده‌اند.
 - ManhwaChi APK: `tachiyomi-fa.manhwachi-v1.6.5.apk`; GlobalComix APK: `tachiyomi-fa.globalcomix-v1.6.1.apk`.
-- PR #14 با قابلیت مشابه و کد قدیمی‌تر، پس از ادغام PR #17 دیگر مرجع فعال نیست و باید به‌عنوان superseded بسته شود.
+- PR #14 قبلاً در 2026-11-10 با versionCode 3 ادغام شده بود؛ commit بعدی main مسیر reader را تغییر داد و بررسی دسترسی زنده را حذف کرد. PR #17 پیاده‌سازی نهایی را جایگزین کرد و squash-merge شد؛ PR #14 از قبل بسته و merged بود و اقدام دیگری لازم نداشت.
 - اجرای build روی PR با debug key انجام شد؛ اجرای main با keystore پایدار انجام و امضا/میزبانی در run #163 تأیید شد.
 - آزمون نصب و اجرای واقعی روی گوشی Mihon هنوز از راه دور قابل تأیید نیست؛ بسته‌ها build، امضا، index و میزبانی شده‌اند، اما smoke test روی دستگاه باید توسط کاربر انجام شود.
 
