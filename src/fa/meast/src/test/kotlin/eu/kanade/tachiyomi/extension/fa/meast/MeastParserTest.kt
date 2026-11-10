@@ -33,7 +33,7 @@ class MeastParserTest {
             """
             <div class="reader-page-container">
                 <img class="reader-image" src="http://images.example.org/page-1.jpg">
-                <img class="reader-image" src="//images.example.org/page-2.jpg">
+                <img class="reader-image" src="data:image/png;base64,AA==">
             </div>
             <img src="https://assets.meast.ir/covers/3/cover.jpg">
             """.trimIndent(),
