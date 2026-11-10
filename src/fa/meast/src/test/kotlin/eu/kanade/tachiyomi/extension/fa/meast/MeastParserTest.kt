@@ -129,5 +129,4 @@ class MeastParserTest {
 
         assertEquals(12.5f, chapters.single().chapter_number, 0.001f)
     }
-
 }
