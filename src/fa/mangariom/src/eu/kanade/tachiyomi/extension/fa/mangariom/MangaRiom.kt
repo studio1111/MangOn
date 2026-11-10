@@ -71,8 +71,31 @@ abstract class MangaRiom : KeiSource() {
         val url = getMangaUrl(manga)
         val doc = client.get(url, Fetch.DOCUMENT).asJsoup()
         val details = if (fetchDetails) parseDetails(doc) else manga
-        val chapterList = if (fetchChapters) parseChapters(doc) else chapters
+        val chapterList = if (fetchChapters) fetchAllPublicChapters(url, doc) else chapters
         return SMangaUpdate(details, chapterList)
+    }
+
+    private suspend fun fetchAllPublicChapters(mangaUrl: HttpUrl, firstPage: Document): List<SChapter> {
+        // Madara paginates the chapter list independently of the manga catalog.
+        // The page number is carried by chs-page, not the ordinary WordPress page parameter.
+        val maxPage = firstPage.select("a[href*='chs-page=']").mapNotNull { link ->
+            link.absUrl("href").toHttpUrl().queryParameter("chs-page")?.toIntOrNull()
+        }.maxOrNull()?.coerceAtMost(100) ?: 1
+
+        val chapters = LinkedHashMap<String, SChapter>()
+        for (page in 1..maxPage) {
+            val document = if (page == 1) {
+                firstPage
+            } else {
+                val pageUrl = mangaUrl.newBuilder()
+                    .setQueryParameter("chs-page", page.toString())
+                    .setQueryParameter("chs-order", "desc")
+                    .build()
+                client.get(pageUrl, Fetch.DOCUMENT).asJsoup()
+            }
+            parseChapters(document).forEach { chapter -> chapters[chapter.url] = chapter }
+        }
+        return chapters.values.sortedByDescending { it.chapter_number }
     }
 
     private fun parseDetails(doc: Document) = SManga.create().apply {
