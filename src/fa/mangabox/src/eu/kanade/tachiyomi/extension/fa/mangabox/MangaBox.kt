@@ -76,7 +76,7 @@ abstract class MangaBox : KeiSource() {
         val mangaUrl = getMangaUrl(manga).toHttpUrl()
         require(isWorkUrl(mangaUrl)) { "نشانی اثر معتبر نیست." }
         val firstPage = client.get(mangaUrl, Fetch.DOCUMENT).asJsoup()
-        val details = if (fetchDetails) parseDetails(firstPage) else manga
+        val details = if (fetchDetails) parseDetails(firstPage).apply { url = manga.url } else manga
         val chapterList = if (fetchChapters) fetchAllPublicChapters(mangaUrl, firstPage) else chapters
         return SMangaUpdate(details, chapterList)
     }
