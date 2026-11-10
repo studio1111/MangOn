@@ -78,6 +78,7 @@ class MeastParserTest {
 
         assertEquals(emptyList<String>(), MeastParser.parseReaderImages(document))
     }
+
     @Test
     fun parsesOnlyPublicChapterLinksFromWrapperRows() {
         val document = Jsoup.parse(
