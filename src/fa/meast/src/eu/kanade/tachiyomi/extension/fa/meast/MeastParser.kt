@@ -34,7 +34,7 @@ internal object MeastParser {
                 val chapterUrl = "/chapter/$chapterId?manga_id=$mangaId"
 
                 SChapter.create().apply {
-                    setUrlWithoutDomain(chapterUrl)
+                    url = chapterUrl
                     name = label
                     chapter_number = number
                 }
