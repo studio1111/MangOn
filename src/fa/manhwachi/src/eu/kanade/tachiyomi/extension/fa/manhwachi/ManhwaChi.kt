@@ -190,9 +190,12 @@ abstract class ManhwaChi : KeiSource() {
         val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptySet()
         return episodes.mapNotNull { element ->
             val episode = element as? JsonObject ?: return@mapNotNull null
-            val number = episode.getIntOrNull("num")?.takeIf { it > 0 } ?: return@mapNotNull null
-            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull.equals("true", ignoreCase = true)
-            number.takeIf { isFree }
+            val number = episode.getIntOrNull("num")
+                ?: episode["num"]?.jsonPrimitive?.contentOrNull?.toIntOrNull()
+                ?: return@mapNotNull null
+            if (number <= 0) return@mapNotNull null
+            val freeFlag = episode["free"]?.jsonPrimitive?.contentOrNull
+            number.takeIf { freeFlag.equals("true", ignoreCase = true) || freeFlag == "1" }
         }.toSet()
     }
 
@@ -203,8 +206,14 @@ abstract class ManhwaChi : KeiSource() {
         val lockedEntries = access.getArrayOrNull("locked")
             ?: throw IllegalStateException("وضعیت دسترسی فصل‌ها قابل بررسی نیست؛ برای جلوگیری از بازکردن فصل قفل‌شده دوباره تلاش کنید.")
         return lockedEntries.map { entry ->
-            (entry as? JsonObject)?.getIntOrNull("num")
+            val number = (entry as? JsonObject)?.getIntOrNull("num")
+                ?: (entry as? JsonObject)?.get("num")?.jsonPrimitive?.contentOrNull?.toIntOrNull()
+                ?: (entry as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
                 ?: throw IllegalStateException("پاسخ وضعیت قفل فصل‌ها نامعتبر است؛ هیچ فصلی باز نمی‌شود.")
+            if (number <= 0) {
+                throw IllegalStateException("شمارهٔ فصل قفل‌شده نامعتبر است؛ هیچ فصلی باز نمی‌شود.")
+            }
+            number
         }.toSet()
     }
 
