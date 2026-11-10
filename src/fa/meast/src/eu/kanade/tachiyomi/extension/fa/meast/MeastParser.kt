@@ -52,8 +52,7 @@ internal object MeastParser {
         }
     }.joinToString("")
 
-    fun parseReaderImages(document: Document): List<String> =
-        document.select(".reader-page-container img.reader-image[src]")
+    fun parseReaderImages(document: Document): List<String> = document.select(".reader-page-container img.reader-image[src]")
             .mapNotNull { image ->
                 val imageUrl = image.absUrl("src").takeIf(String::isNotBlank)
                     ?: return@mapNotNull null
