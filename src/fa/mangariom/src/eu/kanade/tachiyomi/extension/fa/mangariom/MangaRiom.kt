@@ -70,8 +70,8 @@ abstract class MangaRiom : KeiSource() {
     override suspend fun fetchMangaUpdate(manga: SManga, chapters: List<SChapter>, fetchDetails: Boolean, fetchChapters: Boolean): SMangaUpdate {
         val url = getMangaUrl(manga)
         val doc = client.get(url, Fetch.DOCUMENT).asJsoup()
-        val details = if (fetchDetails) parseDetails(doc) else SManga.create()
-        val chapterList = if (fetchChapters) parseChapters(doc) else emptyList()
+        val details = if (fetchDetails) parseDetails(doc) else manga
+        val chapterList = if (fetchChapters) parseChapters(doc) else chapters
         return SMangaUpdate(details, chapterList)
     }
 
