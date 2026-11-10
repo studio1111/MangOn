@@ -166,7 +166,7 @@ jobs:
               --apk "${apks[0]}" \
               --jar "${jars[0]}" \
               --apksigner "$apksigner"
-          done < <(find ../mangon/src/fa -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+          done < <(find ../mangon/src/fa -mindepth 2 -maxdepth 2 -name build.gradle.kts -type f -printf '%h\n' | sed 's#../mangon/src/fa/##' | sort)
 
       - name: Upload release bundle
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
