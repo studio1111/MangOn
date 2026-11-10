@@ -28,7 +28,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.jsoup.nodes.Document
 
 @Serializable
-private data class ChapterImagesRequest(
+private class ChapterImagesRequest(
     val slug: String,
     val chapterNum: Int,
 )
