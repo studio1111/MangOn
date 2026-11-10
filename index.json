@@ -11,12 +11,12 @@
         "name": "GlobalComix",
         "packageName": "eu.kanade.tachiyomi.extension.fa.globalcomix",
         "resources": {
-          "apkUrl": "https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.globalcomix-v1.6.1.apk",
+          "apkUrl": "https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.globalcomix-v1.6.2.apk",
           "iconUrl": "https://raw.githubusercontent.com/keiyoushi/extensions-source/ee661f5233b346559fbdd53993d447c318c5aef0/core/src/main/res/mipmap-xhdpi/ic_launcher.png"
         },
         "extensionLib": "1.6",
-        "versionCode": "106001",
-        "versionName": "1.6.1",
+        "versionCode": "106002",
+        "versionName": "1.6.2",
         "contentWarning": "CONTENT_WARNING_MIXED",
         "sources": [
           {
@@ -31,12 +31,12 @@
         "name": "ManhwaChi",
         "packageName": "eu.kanade.tachiyomi.extension.fa.manhwachi",
         "resources": {
-          "apkUrl": "https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.manhwachi-v1.6.5.apk",
+          "apkUrl": "https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.manhwachi-v1.6.6.apk",
           "iconUrl": "https://raw.githubusercontent.com/keiyoushi/extensions-source/ee661f5233b346559fbdd53993d447c318c5aef0/core/src/main/res/mipmap-xhdpi/ic_launcher.png"
         },
         "extensionLib": "1.6",
-        "versionCode": "106005",
-        "versionName": "1.6.5",
+        "versionCode": "106006",
+        "versionName": "1.6.6",
         "contentWarning": "CONTENT_WARNING_SAFE",
         "sources": [
           {
