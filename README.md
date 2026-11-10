@@ -29,7 +29,8 @@ https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json
 
 | نام | زبان | دامنه | وضعیت |
 | --- | --- | --- | --- |
-| ManhwaChi | fa | manhwachi.ir | مخزن امضاشده منتشر شده (1.6.2)؛ آزمون واقعی نصب در Mihon هنوز لازم است |
+| ManhwaChi | fa | manhwachi.ir | منتشرشده؛ پشتیبانی از فصل‌های عمومی رایگان |
+| MangaRiom | fa | mangariom.top | افزوده‌شده در شاخه توسعه؛ نیازمند تأیید CI و آزمون reader زنده |
 
 ## وضعیت نسخهٔ منتشرشده — 2026-11-09
 
