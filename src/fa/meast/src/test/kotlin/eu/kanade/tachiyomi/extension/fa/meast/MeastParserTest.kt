@@ -80,7 +80,7 @@ class MeastParserTest {
     }
 
     @Test
-    fun parsesOnlyPublicChapterLinksFromWrapperRows() {
+    fun rejectsForeignMangaAndInsecureChapterLinks() {
         val document = Jsoup.parse(
             """
             <div class="chapter-item" data-chapter-number="21">
