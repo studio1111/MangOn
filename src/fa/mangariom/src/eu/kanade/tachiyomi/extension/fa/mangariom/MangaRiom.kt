@@ -67,11 +67,23 @@ abstract class MangaRiom : KeiSource() {
         return parseDetails(client.get(url, Fetch.DOCUMENT).asJsoup()).apply { this.url = url.encodedPath }
     }
 
-    override suspend fun fetchMangaUpdate(manga: SManga, chapters: List<SChapter>, fetchDetails: Boolean, fetchChapters: Boolean): SMangaUpdate {
-        val url = getMangaUrl(manga)
-        val doc = client.get(url, Fetch.DOCUMENT).asJsoup()
-        val details = if (fetchDetails) parseDetails(doc) else manga
-        val chapterList = if (fetchChapters) fetchAllPublicChapters(url, doc) else chapters
+    override suspend fun fetchMangaUpdate(
+        manga: SManga,
+        chapters: List<SChapter>,
+        fetchDetails: Boolean,
+        fetchChapters: Boolean,
+    ): SMangaUpdate {
+        val mangaUrl = getMangaUrl(manga).toHttpUrl()
+        require(isSameHost(mangaUrl) && mangaUrl.encodedPath.startsWith("/all-books/")) {
+            "نشانی اثر معتبر نیست."
+        }
+        val document = if (fetchDetails || fetchChapters) {
+            client.get(mangaUrl, Fetch.DOCUMENT).asJsoup()
+        } else {
+            null
+        }
+        val details = if (fetchDetails) parseDetails(document!!).apply { url = manga.url } else manga
+        val chapterList = if (fetchChapters) fetchAllPublicChapters(mangaUrl, document!!) else chapters
         return SMangaUpdate(details, chapterList)
     }
 
@@ -106,25 +118,6 @@ abstract class MangaRiom : KeiSource() {
         description = doc.selectFirst(".summary__content, .description-summary, .manga-excerpt")?.text()?.trim()
         genre = doc.select(".genres-content a, .manga-genres a").joinToString { it.text() }.ifBlank { null }
         status = SManga.UNKNOWN
-    }
-
-    private suspend fun fetchAllChapters(mangaUrl: HttpUrl, firstPage: Document): List<SChapter> {
-        val maxPage = firstPage.select("a[href*='chs-page=']").mapNotNull { link ->
-            link.absUrl("href").toHttpUrl().queryParameter("chs-page")?.toIntOrNull()
-        }.maxOrNull()?.coerceAtMost(100) ?: 1
-
-        return (1..maxPage).flatMap { page ->
-            val document = if (page == 1) {
-                firstPage
-            } else {
-                val pageUrl = mangaUrl.newBuilder()
-                    .setQueryParameter("chs-page", page.toString())
-                    .setQueryParameter("chs-order", "desc")
-                    .build()
-                client.get(pageUrl, Fetch.DOCUMENT).asJsoup()
-            }
-            parseChapters(document)
-        }.distinctBy { it.url }.sortedByDescending { it.chapter_number }
     }
 
     private fun parseChapters(doc: Document): List<SChapter> = doc.select("li.wp-manga-chapter, .wp-manga-chapter").mapNotNull { item ->
