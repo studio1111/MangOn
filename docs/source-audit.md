@@ -1,6 +1,47 @@
-# ارزیابی منابع فارسی
+**آخرین بازبینی زنده:** 2026-11-10، حدود 12:30 UTC. بخش‌های دارای تاریخ قدیمی‌تر snapshot تاریخی‌اند و وضعیت فعلی را نشان نمی‌دهند. بررسی فنی به‌معنی مجوز بازنشر آثار نیست؛ هیچ ورود، پرداخت، قفل اشتراک، محدودیت جغرافیایی یا کنترل ضدربات دور زده نشده است.
 
-**آخرین بازبینی زنده:** 2026-11-09، حدود 18:20 تا 18:40 UTC. snapshot جدید زیر مرجع وضعیت فعلی است؛ بخش‌های قدیمی‌تر برای حفظ تاریخچه نگه داشته شده‌اند و ممکن است در زمان حاضر منسوخ باشند. بررسی فنی به‌معنی مجوز بازنشر آثار نیست و هیچ ورود، پرداخت، قفل اشتراک، محدودیت جغرافیایی یا کنترل ضدربات دور زده نشده است.
+## آخرین ممیزی — 2026-11-10
+
+### نتیجهٔ مهندسی معکوس Keiyoushi
+- قرارداد ماژول‌ها، Gradle extension plugin، KSP `@Source`، تولید `keiyoushi-source-info.json`، `KeiSource`، نسخه‌بندی و خروجی APK/JAR در [مستند معماری](keiyoushi-architecture.md) ثبت شد.
+- MangOn از pin ثابت upstream یعنی `ee661f5233b346559fbdd53993d447c318c5aef0` استفاده می‌کند؛ ارتقای toolchain در این تغییر انجام نشد.
+- ماژول‌های Persian در `src/fa/*` به‌صورت پویا در settings Gradle ثبت می‌شوند؛ build، lint، Spotless، امضا و artifact collection برای همهٔ ماژول‌ها اجرا می‌شود.
+- تولید index اکنون چندافزونه‌ای است: metadata، APK و JAR هر ماژول بررسی می‌شود؛ package تکراری یا نام فایل تکراری رد می‌شود؛ index protobuf v2 با `apkUrl` و `iconUrl` تولید می‌شود و JAR به‌عنوان asset مستقل باقی می‌ماند.
+
+### افزونه‌های تأییدشده و منتشرشده
+
+| افزونه | package | نسخه | قرارداد دسترسی |
+| --- | --- | --- | --- |
+| ManhwaChi | `eu.kanade.tachiyomi.extension.fa.manhwachi` | 1.6.5 / versionCode 106005 | همهٔ فصل‌های کاتالوگ با FREE/LOCKED/UNKNOWN؛ فقط FREE با بررسی زندهٔ API اجازهٔ دریافت تصویر دارد؛ reader تصاویر را با POST API دریافت می‌کند. |
+| GlobalComix | `eu.kanade.tachiyomi.extension.fa.globalcomix` | 1.6.1 / versionCode 106001 | منبع فارسی بر اساس پیاده‌سازی upstream؛ URL آثار فارسی شناسهٔ عددی را حفظ می‌کند؛ فصل Premium و صفحات پولی فیلتر می‌شوند؛ تصویر فقط از HTTPS خوانده می‌شود. |
+
+- GlobalComix از ماژول upstream با مجوز Apache-2.0 اقتباس شده است؛ منبع، commit و تغییرات در `NOTICE` و `LICENSES/Apache-2.0.txt` ثبت شده‌اند.
+- GlobalComix صفحهٔ فارسی نمونه با slug `/c/--39` دارد؛ به همین دلیل slug با شناسهٔ عددی ترکیب می‌شود تا عنوان فارسی به URL ناقص تبدیل نشود.
+- این دو ماژول، منابعی هستند که مسیرهای کاتالوگ/فصل/reader آن‌ها در مسیر عمومی و بدون دورزدن مجوزها قابل پیاده‌سازی بوده است. منابع تاریخی جدول‌های پایین‌تر که login، اشتراک، محدودیت جغرافیایی یا reader نامطمئن دارند عمداً به افزونه تبدیل نشده‌اند.
+
+### رفع ریشه‌ای مشکل ManhwaChi
+- commit قبلی main، `d14ea6e`، درخواست POST به `/api/get-chapter-images` را اضافه کرده بود، اما بررسی زندهٔ `/api/access/chapters/{slug}` را حذف کرده بود. این باعث می‌شد `free=true` به‌تنهایی معیار دسترسی باشد.
+- اصلاح نهایی فهرست همهٔ فصل‌های کاتالوگ را با وضعیت جداگانهٔ FREE/LOCKED/UNKNOWN نمایش می‌دهد. قبل از POST تصاویر، کاتالوگ و API دسترسی دوباره خوانده می‌شوند. وضعیت LOCKED یا UNKNOWN هیچ‌وقت به reader نمی‌رسد.
+- پاسخ نامعتبر/غایب API به معنی مجوز نیست. cancellation coroutine حفظ می‌شود. درخواست JSON به‌صورت DTO معمولی و با serializer رسمی انجام می‌شود.
+- Reader تصاویر را از HTML خالی قبل از اجرای JavaScript نمی‌خواند؛ از API POST اختصاصی reader استفاده می‌کند.
+
+### CI، امضا و انتشار نهایی
+- [PR #17](https://github.com/studio1111/MangOn/pull/17) با squash merge در commit [ae6acfd504a4a5e06b4c394fb058783226e8a1e6](https://github.com/studio1111/MangOn/commit/ae6acfd504a4a5e06b4c394fb058783226e8a1e6) ادغام شد.
+- [PR run #162](https://github.com/studio1111/MangOn/actions/runs/42815308363) موفق شد: Python unit tests، Spotless، assembleRelease، lintRelease و upload artifact برای هر دو ماژول.
+- [Main publish run #163](https://github.com/studio1111/MangOn/actions/runs/42815949140) با نتیجهٔ success کامل شد. keystore پایدار اعتبارسنجی شد؛ هر دو APK و JAR با همان گواهی امضا شدند؛ SHA-256 certificate fingerprint برای هر چهار خروجی تأیید شد؛ index تولید شد؛ شاخهٔ `repo` منتشر شد و URLهای میزبانی‌شدهٔ descriptor، index و هر دو APK بررسی شدند.
+- Fingerprint فعال: `2922be3a3774a0e1dfb8ff1fc75e73e4637703d3243d7ddc7f1fdbcfd3b070dd`.
+- `repo.json` و `index.pb` در شاخهٔ `repo` موجودند. index شامل دقیقاً دو package فارسی است؛ APK/JARهای هر دو ماژول در شاخهٔ `repo` موجود و URLهای APK از workflow قابل‌دسترسی تأیید شده‌اند.
+- ManhwaChi APK: `tachiyomi-fa.manhwachi-v1.6.5.apk`; GlobalComix APK: `tachiyomi-fa.globalcomix-v1.6.1.apk`.
+- PR #14 با قابلیت مشابه و کد قدیمی‌تر، پس از ادغام PR #17 دیگر مرجع فعال نیست و باید به‌عنوان superseded بسته شود.
+- اجرای build روی PR با debug key انجام شد؛ اجرای main با keystore پایدار انجام و امضا/میزبانی در run #163 تأیید شد.
+- آزمون نصب و اجرای واقعی روی گوشی Mihon هنوز از راه دور قابل تأیید نیست؛ بسته‌ها build، امضا، index و میزبانی شده‌اند، اما smoke test روی دستگاه باید توسط کاربر انجام شود.
+
+### وضعیت منابع دیگر
+- منابع MangaUp، ManEast، Mangate، MangaRiom، Mangato، Manhwa Tower و MangaMic در ممیزی‌های تاریخی پایین‌تر بررسی شده‌اند. وجود metadata یا `isFree=true` به‌تنهایی مجوز reader نیست؛ نمونه‌های آن‌ها به login، اشتراک، محدودیت جغرافیایی یا نبود reader عمومی برخوردند.
+- Illustory در جست‌وجوی عمومی دیده شد، اما در این محیط محتوای صفحه و reader آن قابل دریافت/اعتبارسنجی نبود؛ بنابراین افزونه‌ای برای آن ساخته نشد.
+- فقط منابع عمومی و مجاز پشتیبانی می‌شوند. فصل‌های پولی/قفل‌شده، ورود اجباری، subscription، محدودیت جغرافیایی و anti-bot دور زده نمی‌شوند.
+
+---
 
 ## آخرین ممیزی — 2026-11-09 (حدود 18:20 تا 18:40 UTC)
 
