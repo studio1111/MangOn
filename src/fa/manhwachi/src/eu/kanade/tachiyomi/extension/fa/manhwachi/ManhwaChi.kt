@@ -170,11 +170,24 @@ abstract class ManhwaChi : KeiSource() {
         val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
         val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptyList()
 
+        // A catalog's free=true flag is not sufficient: scheduled and manually locked
+        // chapters are reported separately by the public access endpoint.
+        val access = client.get("$baseUrl/api/access/chapters/$slug".toHttpUrl(), Fetch.XHR)
+            .parseAs<JsonObject>()
+        val lockedEntries = access.getArrayOrNull("locked")
+            ?: throw IllegalStateException(
+                "وضعیت دسترسی فصل‌ها قابل بررسی نیست؛ برای جلوگیری از نمایش فصل قفل‌شده دوباره تلاش کنید.",
+            )
+        val locked = lockedEntries.map { entry ->
+            (entry as? JsonObject)?.getIntOrNull("num")
+                ?: throw IllegalStateException("پاسخ وضعیت قفل فصل‌ها نامعتبر است؛ هیچ فصلی نمایش داده نمی‌شود.")
+        }.toSet()
+
         return episodes.mapNotNull { element ->
             val episode = element as? JsonObject ?: return@mapNotNull null
             val number = episode.getIntOrNull("num")?.takeIf { it > 0 } ?: return@mapNotNull null
             val isFree = episode["free"]?.jsonPrimitive?.contentOrNull.equals("true", ignoreCase = true)
-            if (isFree) CatalogChapter(number) else null
+            if (isFree && number !in locked) CatalogChapter(number) else null
         }.distinctBy { it.number }
     }
 
@@ -201,8 +214,11 @@ abstract class ManhwaChi : KeiSource() {
         }
         val slug = chapterUrl.queryParameter("slug")?.takeIf(slugRegex::matches) ?: return emptyList()
         val number = chapterUrl.queryParameter("ch")?.toIntOrNull()?.takeIf { it > 0 } ?: return emptyList()
-        val isStillFree = fetchFreeCatalogChapters(slug).any { it.number == number }
-        if (!isStillFree) return emptyList()
+
+        // Mihon may cache chapter metadata. Recheck both catalog and live access status
+        // immediately before requesting images; API failures fail closed.
+        val isStillPublic = fetchFreeCatalogChapters(slug).any { it.number == number }
+        if (!isStillPublic) return emptyList()
 
         // The reader fills #reader through a POST request after JavaScript runs.
         // Fetching its HTML directly always returns an empty reader container.
