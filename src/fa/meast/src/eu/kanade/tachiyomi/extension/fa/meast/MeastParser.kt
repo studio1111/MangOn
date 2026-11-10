@@ -26,7 +26,9 @@ internal object MeastParser {
                 val row = link.closest(".chapter-item")
                 val number = row?.attr("data-chapter-number")?.toFloatOrNull()
                     ?: link.attr("data-chapter-number").toFloatOrNull()
-                    ?: Regex("""\d+(?:\.\d+)?""").find(link.text())?.value?.toFloatOrNull()
+                    ?: normalizeDigits(link.text()).let { text ->
+                        Regex("""\d+(?:\.\d+)?""").find(text)?.value?.toFloatOrNull()
+                    }
                     ?: return@mapNotNull null
                 val label = link.text().trim().ifBlank { "قسمت $number" }
                 val chapterUrl = "/chapter/$chapterId?manga_id=$mangaId"
@@ -40,6 +42,14 @@ internal object MeastParser {
             .distinctBy { it.url }
             .sortedByDescending { it.chapter_number }
     }
+
+    private fun normalizeDigits(value: String): String = value.map { char ->
+        when (char) {
+            in '۰'..'۹' -> '0' + (char - '۰')
+            in '٠'..'٩' -> '0' + (char - '٠')
+            else -> char
+        }
+    }.joinToString("")
 
     fun parseReaderImages(document: Document): List<String> =
         document.select(".reader-page-container img.reader-image[src]")
