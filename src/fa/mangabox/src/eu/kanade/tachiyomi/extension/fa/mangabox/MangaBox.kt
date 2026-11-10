@@ -17,11 +17,9 @@ import org.jsoup.nodes.Document
 
 @Source
 abstract class MangaBox : KeiSource() {
-    override suspend fun getPopularManga(page: Int): MangasPage =
-        fetchCatalog(page, "rating")
+    override suspend fun getPopularManga(page: Int): MangasPage = fetchCatalog(page, "rating")
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage =
-        fetchCatalog(page, "latest")
+    override suspend fun getLatestUpdates(page: Int): MangasPage = fetchCatalog(page, "latest")
 
     override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
         if (query.isBlank()) return MangasPage(emptyList(), false)
@@ -156,10 +154,8 @@ abstract class MangaBox : KeiSource() {
         return images.mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
     }
 
-    private fun isWorkUrl(url: HttpUrl): Boolean =
-        isSourceUrl(url) && url.pathSegments.firstOrNull() == "work" &&
-            url.pathSegments.getOrNull(1)?.isNotBlank() == true
+    private fun isWorkUrl(url: HttpUrl): Boolean = isSourceUrl(url) && url.pathSegments.firstOrNull() == "work" &&
+        url.pathSegments.getOrNull(1)?.isNotBlank() == true
 
-    private fun isSourceUrl(url: HttpUrl): Boolean =
-        url.scheme == "https" && url.host == baseUrl.toHttpUrl().host
+    private fun isSourceUrl(url: HttpUrl): Boolean = url.scheme == "https" && url.host == baseUrl.toHttpUrl().host
 }
