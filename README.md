@@ -30,7 +30,7 @@ https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json
 | نام | زبان | دامنه | وضعیت |
 | --- | --- | --- | --- |
 | ManhwaChi | fa | manhwachi.ir | منتشرشده؛ پشتیبانی از فصل‌های عمومی رایگان |
-| MangaRiom | fa | mangariom.top | ساخته‌شده و build/lint موفق در CI؛ آزمون reader زنده در Mihon باقی است |
+| MangaRiom | fa | mangariom.top | حذف از build؛ reader نمونه نیازمند ورود/CAPTCHA است و پشتیبانی نمی‌شود |
 | MangaBox | fa | mangabox.ir | ساخته‌شده؛ build/lint موفق در CI؛ فقط فصل‌های دارای نشان رایگان؛ آزمون زنده در Mihon باقی است |
 | Meast | fa | meast.ir | ساخته‌شده؛ build/lint موفق در CI؛ فقط لینک‌های عمومی فصل؛ آزمون زنده در Mihon باقی است |
 
