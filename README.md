@@ -31,6 +31,8 @@ https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json
 | --- | --- | --- | --- |
 | ManhwaChi | fa | manhwachi.ir | منتشرشده؛ پشتیبانی از فصل‌های عمومی رایگان |
 | MangaRiom | fa | mangariom.top | افزوده‌شده در شاخه توسعه؛ نیازمند تأیید CI و آزمون reader زنده |
+| MangaBox | fa | mangabox.ir | افزوده‌شده در شاخه توسعه؛ فقط فصل‌های دارای نشان رایگان؛ نیازمند تأیید CI و آزمون Mihon |
+| Meast | fa | meast.ir | افزوده‌شده در شاخه توسعه؛ فقط لینک‌های عمومی فصل؛ نیازمند تأیید CI و آزمون Mihon |
 
 ## وضعیت نسخهٔ منتشرشده — 2026-11-09
 
