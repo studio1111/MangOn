@@ -51,7 +51,7 @@ jobs:
           settings = Path("upstream/settings.gradle.kts")
           content = settings.read_text()
           old = "loadAllIndividualExtensions()"
-          new = 'loadIndividualExtension("fa", "manhwachi")'
+          new = "loadAllIndividualExtensions()"
           if old not in content:
               raise SystemExit("Keiyoushi settings layout changed")
           settings.write_text(content.replace(old, new, 1))
