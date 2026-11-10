@@ -108,6 +108,25 @@ abstract class MangaRiom : KeiSource() {
         status = SManga.UNKNOWN
     }
 
+    private suspend fun fetchAllChapters(mangaUrl: HttpUrl, firstPage: Document): List<SChapter> {
+        val maxPage = firstPage.select("a[href*='chs-page=']").mapNotNull { link ->
+            link.absUrl("href").toHttpUrl().queryParameter("chs-page")?.toIntOrNull()
+        }.maxOrNull()?.coerceAtMost(100) ?: 1
+
+        return (1..maxPage).flatMap { page ->
+            val document = if (page == 1) {
+                firstPage
+            } else {
+                val pageUrl = mangaUrl.newBuilder()
+                    .setQueryParameter("chs-page", page.toString())
+                    .setQueryParameter("chs-order", "desc")
+                    .build()
+                client.get(pageUrl, Fetch.DOCUMENT).asJsoup()
+            }
+            parseChapters(document)
+        }.distinctBy { it.url }.sortedByDescending { it.chapter_number }
+    }
+
     private fun parseChapters(doc: Document): List<SChapter> = doc.select("li.wp-manga-chapter, .wp-manga-chapter").mapNotNull { item ->
         val paid = item.selectFirst(".wp-manga-chapter-div-paid-status, .chapter-paid-status")
         // Only chapters explicitly marked free are listed. Unknown status fails closed.
