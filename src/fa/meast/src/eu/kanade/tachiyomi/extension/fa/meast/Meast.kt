@@ -123,7 +123,9 @@ abstract class Meast : KeiSource() {
                     .build()
                 client.get(pageUrl, Fetch.DOCUMENT).asJsoup()
             }
-            document.select("a.chapter-item[href*='/chapter/']").forEach { link ->
+            // The chapter-item class belongs to the wrapper <div>, not the anchor.
+            // Locked rows have no reader link; only linked rows are public candidates.
+            document.select(".chapter-item a[href*='/chapter/']").forEach { link ->
                 val href = link.absUrl("href").toHttpUrl()
                 if (!isSourceUrl(href) || href.pathSegments.firstOrNull() != "chapter") return@forEach
                 val chapterId = href.pathSegments.getOrNull(1)?.takeIf { it.matches(Regex("\\d+")) }
