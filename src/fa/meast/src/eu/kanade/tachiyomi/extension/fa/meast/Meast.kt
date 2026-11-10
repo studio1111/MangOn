@@ -131,7 +131,9 @@ abstract class Meast : KeiSource() {
                 val chapterId = href.pathSegments.getOrNull(1)?.takeIf { it.matches(Regex("\\d+")) }
                     ?: return@forEach
                 if (href.queryParameter("manga_id") != mangaId) return@forEach
-                val number = link.attr("data-chapter-number").toFloatOrNull()
+                val row = link.closest(".chapter-item")
+                val number = row?.attr("data-chapter-number")?.toFloatOrNull()
+                    ?: link.attr("data-chapter-number").toFloatOrNull()
                     ?: Regex("""\d+(?:\.\d+)?""").find(link.text())?.value?.toFloatOrNull()
                     ?: return@forEach
                 val label = link.text().trim().ifBlank { "قسمت $number" }
