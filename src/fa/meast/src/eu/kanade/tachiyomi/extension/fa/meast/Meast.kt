@@ -17,8 +17,6 @@ import org.jsoup.nodes.Document
 
 @Source
 abstract class Meast : KeiSource() {
-    private val pageSize = 24
-
     override suspend fun getPopularManga(page: Int): MangasPage =
         fetchCatalog(page, "view_count_desc")
 
@@ -133,7 +131,7 @@ abstract class Meast : KeiSource() {
                     ?: return@forEach
                 if (href.queryParameter("manga_id") != mangaId) return@forEach
                 val number = link.attr("data-chapter-number").toFloatOrNull()
-                    ?: Regex("""\\d+(?:\\.\\d+)?""").find(link.text())?.value?.toFloatOrNull()
+                    ?: Regex("""\d+(?:\.\d+)?""").find(link.text())?.value?.toFloatOrNull()
                     ?: return@forEach
                 val label = link.text().trim().ifBlank { "قسمت $number" }
                 val chapterUrl = "/chapter/$chapterId?manga_id=$mangaId"
