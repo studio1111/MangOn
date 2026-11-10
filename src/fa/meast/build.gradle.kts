@@ -15,4 +15,8 @@ keiyoushi {
         lang = "fa"
         baseUrl = "https://meast.ir"
     }
+
+    dependencies {
+        testImplementation("junit:junit:4.13.2")
+    }
 }
