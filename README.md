@@ -16,8 +16,8 @@ Mihon فهرست افزونه‌ها را از `index.pb` دریافت می‌ک
 
 | افزونه | زبان | نسخه | شناسهٔ بسته | وضعیت |
 | --- | --- | --- | --- | --- |
-| GlobalComix | fa | 1.6.1 | `eu.kanade.tachiyomi.extension.fa.globalcomix` | <Link url="https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.globalcomix-v1.6.1.apk" title="دریافت APK"/> |
-| ManhwaChi | fa | 1.6.5 | `eu.kanade.tachiyomi.extension.fa.manhwachi` | <Link url="https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.manhwachi-v1.6.5.apk" title="دریافت APK"/> |
+| GlobalComix | fa | 1.6.1 | `eu.kanade.tachiyomi.extension.fa.globalcomix` | [دریافت APK](https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.globalcomix-v1.6.1.apk) |
+| ManhwaChi | fa | 1.6.5 | `eu.kanade.tachiyomi.extension.fa.manhwachi` | [دریافت APK](https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.manhwachi-v1.6.5.apk) |
 
 - **ManhwaChi:** نمایش فصل‌های کاتالوگ با وضعیت آزاد، قفل‌شده یا نامشخص؛ بررسی مجدد مجوز دسترسی پیش از دریافت تصاویر؛ دریافت تصاویر از API واقعی reader به‌جای HTML خالی صفحه.
 - **GlobalComix:** جست‌وجو و فهرست فارسی؛ نگهداری شناسهٔ عددی در URL آثار فارسی؛ جلوگیری از دریافت فصل‌های Premium و صفحات پولی؛ فقط URLهای HTTPS برای تصاویر.
