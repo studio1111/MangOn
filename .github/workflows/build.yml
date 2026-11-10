@@ -68,6 +68,10 @@ jobs:
           python -m pip install --disable-pip-version-check --no-input "protobuf==7.35.1"
           python -m unittest discover -s mangon/.github/scripts -p 'test_*.py' -v
 
+      - name: Test Meast reader parser
+        working-directory: upstream
+        run: ./gradlew :src:fa:meast:testReleaseUnitTest --no-daemon
+
       - name: Configure and verify stable signing key
         if: github.ref == 'refs/heads/main'
         id: signing
