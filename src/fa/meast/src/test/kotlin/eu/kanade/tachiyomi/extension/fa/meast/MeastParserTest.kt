@@ -102,19 +102,31 @@ class MeastParserTest {
 
         assertEquals(1, chapters.size)
         assertEquals("/chapter/165?manga_id=3", chapters.single().url)
-        assertEquals(21f, chapters.single().chapter_number)
+        assertEquals(21f, chapters.single().chapter_number, 0.001f)
     }
 
     @Test
-    fun parsesChapterNumberFromLinkWhenWrapperMetadataIsAbsent() {
+    fun parsesChapterNumberFromPersianDigitsWhenWrapperMetadataIsAbsent() {
         val document = Jsoup.parse(
-            """<div class="chapter-item"><a href="/chapter/165?manga_id=3">فصل ۱۲.۵</a></div>""",
+            """<div class="chapter-item"><a href="/chapter/165?manga_id=3">فصل ۱۲٫۵</a></div>""",
             "https://meast.ir/manga/3/",
         )
 
         val chapters = MeastParser.parsePublicChapters(document, "https://meast.ir", "3")
 
-        assertEquals(12.5f, chapters.single().chapter_number)
+        assertEquals(12.5f, chapters.single().chapter_number, 0.001f)
+    }
+
+    @Test
+    fun parsesChapterNumberFromArabicIndicDigits() {
+        val document = Jsoup.parse(
+            """<div class="chapter-item"><a href="/chapter/165?manga_id=3">الفصل ١٢.٥</a></div>""",
+            "https://meast.ir/manga/3/",
+        )
+
+        val chapters = MeastParser.parsePublicChapters(document, "https://meast.ir", "3")
+
+        assertEquals(12.5f, chapters.single().chapter_number, 0.001f)
     }
 
 }
