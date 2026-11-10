@@ -114,6 +114,7 @@ jobs:
           )
           if not modules:
               raise SystemExit("No valid MangOn extension modules found")
+          print("spotlessCheck")
           for module in modules:
               print(f":src:fa:{module}:assembleRelease")
               print(f":src:fa:{module}:lintRelease")
