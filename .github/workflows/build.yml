@@ -95,14 +95,14 @@ jobs:
         if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
         working-directory: upstream
         run: |
-          mapfile -t modules < <(find src/fa -mindepth 1 -maxdepth 1 -type d -printf '%f\\n' | sort)
+          mapfile -t modules < <(find ../mangon/src/fa -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
           tasks=()
           for module in "${modules[@]}"; do
             [[ -f "src/fa/${module}/build.gradle.kts" ]] || continue
             tasks+=(":src:fa:${module}:assembleRelease" ":src:fa:${module}:lintRelease")
           done
           (("${#tasks[@]}" > 0)) || { echo "::error::No Persian extension modules found"; exit 1; }
-          printf 'Building and linting %s Persian extension module(s)\\n' "$((${#tasks[@]} / 2))"
+          printf 'Building and linting %s Persian extension module(s)\n' "$((${#tasks[@]} / 2))"
           ./gradlew "${tasks[@]}" --no-daemon
 
       - name: Build and lint release (signed publish)
@@ -115,14 +115,14 @@ jobs:
         run: |
           set -euo pipefail
           test -s signingkey.jks || { echo "::error::Stable signing keystore is missing from the upstream Gradle root"; exit 1; }
-          mapfile -t modules < <(find src/fa -mindepth 1 -maxdepth 1 -type d -printf '%f\\n' | sort)
+          mapfile -t modules < <(find ../mangon/src/fa -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
           tasks=()
           for module in "${modules[@]}"; do
             [[ -f "src/fa/${module}/build.gradle.kts" ]] || continue
             tasks+=(":src:fa:${module}:assembleRelease" ":src:fa:${module}:lintRelease")
           done
           (("${#tasks[@]}" > 0)) || { echo "::error::No Persian extension modules found"; exit 1; }
-          printf 'Building and linting %s Persian extension module(s)\\n' "$((${#tasks[@]} / 2))"
+          printf 'Building and linting %s Persian extension module(s)\n' "$((${#tasks[@]} / 2))"
           ./gradlew "${tasks[@]}" --no-daemon --no-configuration-cache
 
       - name: Verify APK and extension JAR signatures
