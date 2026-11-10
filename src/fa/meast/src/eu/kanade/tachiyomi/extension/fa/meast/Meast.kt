@@ -51,7 +51,8 @@ abstract class Meast : KeiSource() {
             SManga.create().apply {
                 setUrlWithoutDomain("/manga/$id/")
                 this.title = title
-                thumbnail_url = image?.let { it.absUrl("src").takeIf(String::isNotBlank) }
+                thumbnail_url = image?.absUrl("src")?.takeIf(String::isNotBlank)
+                    ?: "https://assets.meast.ir/covers/$id/cover.jpg"
             }
         }.distinctBy { it.url }
 
