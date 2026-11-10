@@ -12,8 +12,8 @@
 
 | افزونه | package | نسخه | قرارداد دسترسی |
 | --- | --- | --- | --- |
-| ManhwaChi | `eu.kanade.tachiyomi.extension.fa.manhwachi` | 1.6.5 / versionCode 106005 | همهٔ فصل‌های کاتالوگ با FREE/LOCKED/UNKNOWN؛ فقط FREE با بررسی زندهٔ API اجازهٔ دریافت تصویر دارد؛ reader تصاویر را با POST API دریافت می‌کند. |
-| GlobalComix | `eu.kanade.tachiyomi.extension.fa.globalcomix` | 1.6.1 / versionCode 106001 | منبع فارسی بر اساس پیاده‌سازی upstream؛ URL آثار فارسی شناسهٔ عددی را حفظ می‌کند؛ فصل Premium و صفحات پولی فیلتر می‌شوند؛ تصویر فقط از HTTPS خوانده می‌شود. |
+| ManhwaChi | `eu.kanade.tachiyomi.extension.fa.manhwachi` | 1.6.6 / versionCode 106006 | همهٔ فصل‌های کاتالوگ با FREE/LOCKED/UNKNOWN؛ فقط FREE با بررسی زندهٔ API اجازهٔ دریافت تصویر دارد؛ reader تصاویر را با POST API دریافت می‌کند. |
+| GlobalComix | `eu.kanade.tachiyomi.extension.fa.globalcomix` | 1.6.2 / versionCode 106002 | منبع فارسی بر اساس پیاده‌سازی upstream؛ URL آثار فارسی شناسهٔ عددی را حفظ می‌کند؛ فصل Premium و صفحات پولی فیلتر می‌شوند؛ تصویر فقط از HTTPS خوانده می‌شود. |
 
 - GlobalComix از ماژول upstream با مجوز Apache-2.0 اقتباس شده است؛ منبع، commit و تغییرات در `NOTICE` و `LICENSES/Apache-2.0.txt` ثبت شده‌اند.
 - GlobalComix صفحهٔ فارسی نمونه با slug `/c/--39` دارد؛ به همین دلیل slug با شناسهٔ عددی ترکیب می‌شود تا عنوان فارسی به URL ناقص تبدیل نشود.
@@ -31,7 +31,7 @@
 - [Main publish run #163](https://github.com/studio1111/MangOn/actions/runs/42815949140) با نتیجهٔ success کامل شد. keystore پایدار اعتبارسنجی شد؛ هر دو APK و JAR با همان گواهی امضا شدند؛ SHA-256 certificate fingerprint برای هر چهار خروجی تأیید شد؛ index تولید شد؛ شاخهٔ `repo` منتشر شد و URLهای میزبانی‌شدهٔ descriptor، index و هر دو APK بررسی شدند.
 - Fingerprint فعال: `2922be3a3774a0e1dfb8ff1fc75e73e4637703d3243d7ddc7f1fdbcfd3b070dd`.
 - `repo.json` و `index.pb` در شاخهٔ `repo` موجودند. index شامل دقیقاً دو package فارسی است؛ APK/JARهای هر دو ماژول در شاخهٔ `repo` موجود و URLهای APK از workflow قابل‌دسترسی تأیید شده‌اند.
-- ManhwaChi APK: `tachiyomi-fa.manhwachi-v1.6.5.apk`; GlobalComix APK: `tachiyomi-fa.globalcomix-v1.6.1.apk`.
+- ManhwaChi APK: `tachiyomi-fa.manhwachi-v1.6.6.apk`; GlobalComix APK: `tachiyomi-fa.globalcomix-v1.6.2.apk`.
 - PR #14 قبلاً در 2026-11-10 با versionCode 3 ادغام شده بود؛ commit بعدی main مسیر reader را تغییر داد و بررسی دسترسی زنده را حذف کرد. PR #17 پیاده‌سازی نهایی را جایگزین کرد و squash-merge شد؛ PR #14 از قبل بسته و merged بود و اقدام دیگری لازم نداشت.
 - اجرای build روی PR با debug key انجام شد؛ اجرای main با keystore پایدار انجام و امضا/میزبانی در run #163 تأیید شد.
 - آزمون نصب و اجرای واقعی روی گوشی Mihon هنوز از راه دور قابل تأیید نیست؛ بسته‌ها build، امضا، index و میزبانی شده‌اند، اما smoke test روی دستگاه باید توسط کاربر انجام شود.
