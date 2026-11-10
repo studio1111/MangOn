@@ -6,6 +6,35 @@ import org.junit.Test
 
 class MeastParserTest {
     @Test
+    fun parsesOnlyPublicChapterLinksFromWrapperRows() {
+        val document = Jsoup.parse(
+            """
+            <div class="chapter-item" data-chapter-number="12">
+                <a href="/chapter/165?manga_id=3">قسمت ۱۲</a>
+            </div>
+            <div class="chapter-item" data-chapter-number="11">
+                <a href="/chapter/164?manga_id=3">قسمت ۱۱</a>
+            </div>
+            <div class="chapter-item locked" data-chapter-number="10">
+                <span>نیازمند اشتراک یا ورود</span>
+            </div>
+            <div class="chapter-item">
+                <a href="https://evil.example/chapter/999?manga_id=3">قسمت ۹</a>
+            </div>
+            """.trimIndent(),
+            "https://meast.ir/manga/3/",
+        )
+
+        val chapters = MeastParser.parsePublicChapters(document, "https://meast.ir", "3")
+
+        assertEquals(listOf(12f, 11f), chapters.map { it.chapter_number })
+        assertEquals(
+            listOf("/chapter/165?manga_id=3", "/chapter/164?manga_id=3"),
+            chapters.map { it.url },
+        )
+    }
+
+    @Test
     fun parsesImagesFromTheLiveReaderContainerInDocumentOrder() {
         val document = Jsoup.parse(
             """
