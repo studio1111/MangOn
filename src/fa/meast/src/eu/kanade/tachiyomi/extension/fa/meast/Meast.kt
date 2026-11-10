@@ -87,8 +87,8 @@ abstract class Meast : KeiSource() {
         } else {
             null
         }
-        val details = if (fetchDetails) parseDetails(document!!) else SManga.create()
-        val chapterList = if (fetchChapters) fetchAllPublicChapters(mangaUrl, id, document!!) else emptyList()
+        val details = if (fetchDetails) parseDetails(document!!) else manga
+        val chapterList = if (fetchChapters) fetchAllPublicChapters(mangaUrl, id, document!!) else chapters
         return SMangaUpdate(details, chapterList)
     }
 
