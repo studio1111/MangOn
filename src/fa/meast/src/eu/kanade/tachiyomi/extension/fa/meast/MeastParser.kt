@@ -47,6 +47,7 @@ internal object MeastParser {
         when (char) {
             in '۰'..'۹' -> '0' + (char - '۰')
             in '٠'..'٩' -> '0' + (char - '٠')
+            '\u066B', '٫' -> '.'
             else -> char
         }
     }.joinToString("")
