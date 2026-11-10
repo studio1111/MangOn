@@ -26,6 +26,7 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.jsoup.nodes.Document
+import java.util.concurrent.CancellationException
 
 @Serializable
 private data class ChapterImagesRequest(
@@ -40,10 +41,6 @@ abstract class ManhwaChi : KeiSource() {
         val score: Float,
         val latestChapter: Int,
         val englishTitle: String?,
-    )
-
-    private data class CatalogChapter(
-        val number: Int,
     )
 
     private val slugRegex = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
@@ -126,7 +123,10 @@ abstract class ManhwaChi : KeiSource() {
 
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
         val sourceUrl = baseUrl.toHttpUrl()
-        if (url.scheme != sourceUrl.scheme || url.host != sourceUrl.host || url.port != sourceUrl.port ||
+        if (
+            url.scheme != sourceUrl.scheme ||
+            url.host != sourceUrl.host ||
+            url.port != sourceUrl.port ||
             url.pathSegments.firstOrNull() != "comic"
         ) {
             return null
@@ -142,11 +142,13 @@ abstract class ManhwaChi : KeiSource() {
         fetchChapters: Boolean,
     ): SMangaUpdate {
         val details = if (fetchDetails) {
-            client.get(getMangaUrl(manga), Fetch.DOCUMENT).asJsoup().let(::parseDetails)
+            client.get(getMangaUrl(manga), Fetch.DOCUMENT).asJsoup().let(::parseDetails).apply {
+                url = manga.url
+            }
         } else {
-            SManga.create()
+            manga
         }
-        val chapterList = if (fetchChapters) fetchPublicChapters(manga) else emptyList()
+        val chapterList = if (fetchChapters) fetchPublicChapters(manga) else chapters
         return SMangaUpdate(details, chapterList)
     }
 
@@ -154,28 +156,65 @@ abstract class ManhwaChi : KeiSource() {
         val slug = manga.url.substringAfter("/comic/", "").substringBefore('?').substringBefore('/')
         if (!slugRegex.matches(slug)) return emptyList()
 
-        return fetchFreeCatalogChapters(slug).map { chapter ->
-            SChapter.create().apply {
-                setUrlWithoutDomain("$baseUrl/reader.html?slug=$slug&ch=${chapter.number}")
-                name = "چپتر ${chapter.number}"
-                chapter_number = chapter.number.toFloat()
-                date_upload = 0L
+        // The explicit catalog free flag keeps chapter rows visible if the separate
+        // lock-status endpoint is temporarily unavailable. Opening a chapter always
+        // revalidates both the free flag and lock state, and fails closed on API errors.
+        val freeNumbers = fetchFreeChapterNumbers(slug)
+        val lockedNumbers = try {
+            fetchLockedChapterNumbers(slug)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            null
+        }
+
+        return freeNumbers
+            .filterNot { number -> lockedNumbers?.contains(number) == true }
+            .map { number ->
+                SChapter.create().apply {
+                    setUrlWithoutDomain("$baseUrl/reader.html?slug=$slug&ch=$number")
+                    name = "چپتر $number"
+                    chapter_number = number.toFloat()
+                    date_upload = 0L
+                }
             }
-        }.sortedByDescending { it.chapter_number }
+            .sortedByDescending { it.chapter_number }
     }
 
-    private suspend fun fetchFreeCatalogChapters(slug: String): List<CatalogChapter> {
-        if (!slugRegex.matches(slug)) return emptyList()
+    private suspend fun fetchPublicChapterNumbers(slug: String): Set<Int> =
+        fetchFreeChapterNumbers(slug) - fetchLockedChapterNumbers(slug)
 
+    private suspend fun fetchFreeChapterNumbers(slug: String): Set<Int> {
+        if (!slugRegex.matches(slug)) return emptySet()
         val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
-        val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptyList()
-
+        val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptySet()
         return episodes.mapNotNull { element ->
             val episode = element as? JsonObject ?: return@mapNotNull null
-            val number = episode.getIntOrNull("num")?.takeIf { it > 0 } ?: return@mapNotNull null
-            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull.equals("true", ignoreCase = true)
-            if (isFree) CatalogChapter(number) else null
-        }.distinctBy { it.number }
+            val number = episode.getIntOrNull("num")
+                ?: episode["num"]?.jsonPrimitive?.contentOrNull?.toIntOrNull()
+                ?: return@mapNotNull null
+            if (number <= 0) return@mapNotNull null
+            val freeFlag = episode["free"]?.jsonPrimitive?.contentOrNull
+            number.takeIf { freeFlag.equals("true", ignoreCase = true) || freeFlag == "1" }
+        }.toSet()
+    }
+
+    private suspend fun fetchLockedChapterNumbers(slug: String): Set<Int> {
+        if (!slugRegex.matches(slug)) return emptySet()
+        val access = client.get("$baseUrl/api/access/chapters/$slug".toHttpUrl(), Fetch.XHR)
+            .parseAs<JsonObject>()
+        val lockedEntries = access.getArrayOrNull("locked")
+            ?: throw IllegalStateException("وضعیت دسترسی فصل‌ها قابل بررسی نیست؛ برای جلوگیری از بازکردن فصل قفل‌شده دوباره تلاش کنید.")
+        return lockedEntries.map { entry ->
+            val number = (entry as? JsonObject)?.getIntOrNull("num")
+                ?: (entry as? JsonObject)?.get("num")?.jsonPrimitive?.contentOrNull?.toIntOrNull()
+                ?: (entry as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+                ?: throw IllegalStateException("پاسخ وضعیت قفل فصل‌ها نامعتبر است؛ هیچ فصلی باز نمی‌شود.")
+            if (number <= 0) {
+                throw IllegalStateException("شمارهٔ فصل قفل‌شده نامعتبر است؛ هیچ فصلی باز نمی‌شود.")
+            }
+            number
+        }.toSet()
     }
 
     private fun parseDetails(document: Document) = SManga.create().apply {
@@ -201,11 +240,10 @@ abstract class ManhwaChi : KeiSource() {
         }
         val slug = chapterUrl.queryParameter("slug")?.takeIf(slugRegex::matches) ?: return emptyList()
         val number = chapterUrl.queryParameter("ch")?.toIntOrNull()?.takeIf { it > 0 } ?: return emptyList()
-        val isStillFree = fetchFreeCatalogChapters(slug).any { it.number == number }
-        if (!isStillFree) return emptyList()
+        if (number !in fetchPublicChapterNumbers(slug)) return emptyList()
 
         // The reader fills #reader through a POST request after JavaScript runs.
-        // Fetching its HTML directly always returns an empty reader container.
+        // Fetching its HTML directly returns an empty reader container.
         val response = client.post(
             "$baseUrl/api/get-chapter-images",
             headers,

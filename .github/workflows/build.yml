@@ -2,7 +2,7 @@ name: Build and publish MangOn Mihon repository
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
     paths:
       - "src/**"
       - ".github/workflows/build.yml"
@@ -50,11 +50,8 @@ jobs:
           from pathlib import Path
           settings = Path("upstream/settings.gradle.kts")
           content = settings.read_text()
-          old = "loadAllIndividualExtensions()"
-          new = 'loadIndividualExtension("fa", "manhwachi")'
-          if old not in content:
-              raise SystemExit("Keiyoushi settings layout changed")
-          settings.write_text(content.replace(old, new, 1))
+          if "loadAllIndividualExtensions()" not in content:
+              raise SystemExit("Keiyoushi settings no longer loads all individual extensions")
           PY
 
       - name: Set up Java
@@ -70,6 +67,10 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check --no-input "protobuf==7.35.1"
           python -m unittest discover -s mangon/.github/scripts -p 'test_*.py' -v
+
+      - name: Test Meast chapter and reader parsers
+        working-directory: upstream
+        run: ./gradlew :src:fa:meast:test --no-daemon --stacktrace
 
       - name: Configure and verify stable signing key
         if: github.ref == 'refs/heads/main'
@@ -98,7 +99,15 @@ jobs:
         if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
         working-directory: upstream
         run: |
-          ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon
+          mapfile -t modules < <(find ../mangon/src/fa -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+          tasks=()
+          for module in "${modules[@]}"; do
+            [[ -f "src/fa/${module}/build.gradle.kts" ]] || continue
+            tasks+=(":src:fa:${module}:assembleRelease" ":src:fa:${module}:lintRelease")
+          done
+          (("${#tasks[@]}" > 0)) || { echo "::error::No Persian extension modules found"; exit 1; }
+          printf 'Building and linting %s Persian extension module(s)\n' "$((${#tasks[@]} / 2))"
+          ./gradlew "${tasks[@]}" --no-daemon
 
       - name: Build and lint release (signed publish)
         if: github.ref == 'refs/heads/main'
@@ -110,7 +119,15 @@ jobs:
         run: |
           set -euo pipefail
           test -s signingkey.jks || { echo "::error::Stable signing keystore is missing from the upstream Gradle root"; exit 1; }
-          ./gradlew :src:fa:manhwachi:assembleRelease :src:fa:manhwachi:lintRelease --no-daemon --no-configuration-cache
+          mapfile -t modules < <(find ../mangon/src/fa -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+          tasks=()
+          for module in "${modules[@]}"; do
+            [[ -f "src/fa/${module}/build.gradle.kts" ]] || continue
+            tasks+=(":src:fa:${module}:assembleRelease" ":src:fa:${module}:lintRelease")
+          done
+          (("${#tasks[@]}" > 0)) || { echo "::error::No Persian extension modules found"; exit 1; }
+          printf 'Building and linting %s Persian extension module(s)\n' "$((${#tasks[@]} / 2))"
+          ./gradlew "${tasks[@]}" --no-daemon --no-configuration-cache
 
       - name: Verify APK and extension JAR signatures
         if: github.ref == 'refs/heads/main'
@@ -119,16 +136,16 @@ jobs:
           EXPECTED_FINGERPRINT: ${{ steps.signing.outputs.signing_key }}
         run: |
           set -euo pipefail
-          mapfile -t apks < <(find src/fa/manhwachi/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print | sort)
-          mapfile -t jars < <(find src/fa/manhwachi/build/outputs/jar/release -maxdepth 1 -type f -name '*.jar' -print | sort)
-          [[ "${#apks[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release APK, found ${#apks[@]}"; exit 1; }
-          [[ "${#jars[@]}" -eq 1 ]] || { echo "::error::Expected exactly one release JAR, found ${#jars[@]}"; exit 1; }
+          mapfile -t apks < <(find src/fa -type f -path '*/build/outputs/apk/release/*.apk' -print | sort)
+          mapfile -t jars < <(find src/fa -type f -path '*/build/outputs/jar/release/*.jar' -print | sort)
+          [[ "${#apks[@]}" -gt 0 ]] || { echo "::error::No release APKs were built"; exit 1; }
+          [[ "${#jars[@]}" -eq "${#apks[@]}" ]] || { echo "::error::APK/JAR count mismatch: ${#apks[@]} APK(s), ${#jars[@]} JAR(s)"; exit 1; }
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$apksigner" || { echo "::error::Android apksigner was not found"; exit 1; }
           python ../mangon/.github/scripts/verify_release_signatures.py \
             --expected "$EXPECTED_FINGERPRINT" \
-            --apk "${apks[0]}" \
-            --jar "${jars[0]}" \
+            --apk "${apks[@]}" \
+            --jar "${jars[@]}" \
             --apksigner "$apksigner"
 
       - name: Upload release bundle
@@ -136,9 +153,9 @@ jobs:
         with:
           name: mangon-release-bundle
           path: |
-            upstream/src/fa/manhwachi/build/keiyoushi-source-info.json
-            upstream/src/fa/manhwachi/build/outputs/apk/release/*.apk
-            upstream/src/fa/manhwachi/build/outputs/jar/release/*.jar
+            upstream/src/fa/*/build/keiyoushi-source-info.json
+            upstream/src/fa/*/build/outputs/apk/release/*.apk
+            upstream/src/fa/*/build/outputs/jar/release/*.jar
           if-no-files-found: error
           retention-days: 7
 
@@ -232,20 +249,38 @@ jobs:
           assert index.name == "MangOn"
           assert index.signingKey == fingerprint and len(fingerprint) == 64
           extensions = list(index.extensionList.extensions)
-          assert len(extensions) == 1
-          extension = extensions[0]
-          assert extension.packageName == "eu.kanade.tachiyomi.extension.fa.manhwachi"
-          assert extension.sources and extension.sources[0].language == "fa"
+          packages = {extension.packageName for extension in extensions}
+          required_packages = {
+              "eu.kanade.tachiyomi.extension.fa.manhwachi",
+              "eu.kanade.tachiyomi.extension.fa.mangariom",
+              "eu.kanade.tachiyomi.extension.fa.mangabox",
+              "eu.kanade.tachiyomi.extension.fa.meast",
+          }
+          assert required_packages.issubset(packages), f"Missing expected extension packages: {required_packages - packages}"
+          assert len(packages) == len(extensions), "Duplicate extension packages in repository index"
+          assert all(extension.sources and all(source.language == "fa" for source in extension.sources) for extension in extensions)
 
           # Mihon's v2 Resources model exposes apkUrl and iconUrl only.
-          # The signed JAR remains published for tooling, not in the Mihon index.
-          for asset_url in (extension.resources.apkUrl,):
-              assert asset_url.startswith("https://raw.githubusercontent.com/studio1111/MangOn/repo/")
+          # Signed JARs are published separately for tooling.
+          apk_urls = [extension.resources.apkUrl for extension in extensions]
+          assert len(apk_urls) == len(set(apk_urls)), "Duplicate APK URLs in repository index"
+          base = "https://raw.githubusercontent.com/studio1111/MangOn/repo"
+          for asset_url in apk_urls:
+              assert asset_url.startswith(base + "/apk/")
               subprocess.run(
                   ["curl", "--fail", "--silent", "--show-error", "--retry", "5",
                    "--retry-delay", "2", asset_url + "?cachebust=" + os.environ["GITHUB_SHA"],
                    "--output", "/dev/null"],
                   check=True,
               )
-          print(f"Hosted repository verified: {len(extensions)} extension(s); descriptor, index, APK and JAR are reachable.")
+          jar_files = sorted(Path("dist/repo/jar").glob("*.jar"))
+          assert len(jar_files) == len(extensions), "JAR asset count does not match extension count"
+          for jar_file in jar_files:
+              subprocess.run(
+                  ["curl", "--fail", "--silent", "--show-error", "--retry", "5",
+                   "--retry-delay", "2", f"{base}/jar/{jar_file.name}?cachebust=" + os.environ["GITHUB_SHA"],
+                   "--output", "/dev/null"],
+                  check=True,
+              )
+          print(f"Hosted repository verified: {len(extensions)} extensions; descriptor, index, all APKs and JARs are reachable.")
           PY
