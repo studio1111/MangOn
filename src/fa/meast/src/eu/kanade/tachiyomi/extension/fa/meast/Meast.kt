@@ -17,11 +17,9 @@ import org.jsoup.nodes.Document
 
 @Source
 abstract class Meast : KeiSource() {
-    override suspend fun getPopularManga(page: Int): MangasPage =
-        fetchCatalog(page, "view_count_desc")
+    override suspend fun getPopularManga(page: Int): MangasPage = fetchCatalog(page, "view_count_desc")
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage =
-        fetchCatalog(page, "updated_at_desc")
+    override suspend fun getLatestUpdates(page: Int): MangasPage = fetchCatalog(page, "updated_at_desc")
 
     override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
         if (query.isBlank()) return MangasPage(emptyList(), false)
@@ -173,6 +171,5 @@ abstract class Meast : KeiSource() {
         return images.mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
     }
 
-    private fun isSourceUrl(url: HttpUrl): Boolean =
-        url.scheme == "https" && url.host == baseUrl.toHttpUrl().host
+    private fun isSourceUrl(url: HttpUrl): Boolean = url.scheme == "https" && url.host == baseUrl.toHttpUrl().host
 }
