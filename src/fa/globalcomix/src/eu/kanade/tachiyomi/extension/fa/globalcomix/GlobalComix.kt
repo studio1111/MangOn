@@ -124,7 +124,7 @@ abstract class GlobalComix :
 
     override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage = simpleQuery(page, orderBy = "relevance", query)
 
-    override fun getMangaUrl(manga: SManga): String = "$WEB_COMIC_URL/${titleToSlug(manga.title)}"
+    override fun getMangaUrl(manga: SManga): String = "$WEB_COMIC_URL/${mangaSlug(manga)}"
 
     private suspend fun fetchMangaBySlug(slug: String): SManga {
         val url = API_MANGA_URL.toHttpUrl().newBuilder()
@@ -142,7 +142,7 @@ abstract class GlobalComix :
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate = coroutineScope {
-        val details = async { if (fetchDetails) fetchMangaBySlug(titleToSlug(manga.title)) else manga }
+        val details = async { if (fetchDetails) fetchMangaBySlug(mangaSlug(manga)) else manga }
         val chapterList = async { if (fetchChapters) fetchChapterList(manga) else chapters }
         SMangaUpdate(details.await(), chapterList.await())
     }
@@ -212,6 +212,10 @@ abstract class GlobalComix :
         get() = getBoolean(getShowLockedChaptersPreferenceKey(extLang), true)
 
     companion object {
+        // GlobalComix appends the numeric comic ID to its URL slug. Keep it because
+        // Persian titles normalize to punctuation-only slugs (for example, /c/--39).
+        fun mangaSlug(manga: SManga): String = "${titleToSlug(manga.title)}-${manga.url}"
+
         fun titleToSlug(title: String) = title.trim()
             .lowercase(Locale.US)
             .replace(titleSpecialCharactersRegex, "-")
