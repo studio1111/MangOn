@@ -121,7 +121,7 @@ abstract class MangaBox : KeiSource() {
                 val label = row.selectFirst(".chapter-num")?.text()?.trim()
                     ?.takeIf(String::isNotBlank)
                     ?: link.text().trim().ifBlank { "چپتر $number" }
-                val chapterUrl = "/read/$slug/${number.toInt()}"
+                val chapterUrl = href.encodedPath
                 if (freeBadge.text().contains("رایگان")) {
                     result[chapterUrl] = SChapter.create().apply {
                         setUrlWithoutDomain(chapterUrl)
