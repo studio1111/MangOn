@@ -123,26 +123,8 @@ abstract class Meast : KeiSource() {
                     .build()
                 client.get(pageUrl, Fetch.DOCUMENT).asJsoup()
             }
-            // The chapter-item class belongs to the wrapper <div>, not the anchor.
-            // Locked rows have no reader link; only linked rows are public candidates.
-            document.select(".chapter-item a[href*='/chapter/']").forEach { link ->
-                val href = link.absUrl("href").toHttpUrl()
-                if (!isSourceUrl(href) || href.pathSegments.firstOrNull() != "chapter") return@forEach
-                val chapterId = href.pathSegments.getOrNull(1)?.takeIf { it.matches(Regex("\\d+")) }
-                    ?: return@forEach
-                if (href.queryParameter("manga_id") != mangaId) return@forEach
-                val row = link.closest(".chapter-item")
-                val number = row?.attr("data-chapter-number")?.toFloatOrNull()
-                    ?: link.attr("data-chapter-number").toFloatOrNull()
-                    ?: Regex("""\d+(?:\.\d+)?""").find(link.text())?.value?.toFloatOrNull()
-                    ?: return@forEach
-                val label = link.text().trim().ifBlank { "قسمت $number" }
-                val chapterUrl = "/chapter/$chapterId?manga_id=$mangaId"
-                result[chapterUrl] = SChapter.create().apply {
-                    setUrlWithoutDomain(chapterUrl)
-                    name = label
-                    chapter_number = number
-                }
+            MeastParser.parsePublicChapters(document, baseUrl, mangaId).forEach { chapter ->
+                result[chapter.url] = chapter
             }
         }
         return result.values.sortedByDescending { it.chapter_number }
