@@ -114,7 +114,7 @@ abstract class MangaBox : KeiSource() {
                     ?: return@forEach
                 val href = link.absUrl("href").toHttpUrl()
                 if (!isSourceUrl(href) || href.pathSegments.firstOrNull() != "read") return@forEach
-                val slug = href.pathSegments.getOrNull(1) ?: return@forEach
+                if (href.pathSegments.size != 3 || href.pathSegments[1].isBlank()) return@forEach
                 val number = href.pathSegments.getOrNull(2)?.toFloatOrNull()
                     ?: row.attr("data-num").toFloatOrNull()
                     ?: return@forEach
