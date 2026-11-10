@@ -130,9 +130,9 @@ abstract class ManhwaChi : KeiSource() {
         val details = if (fetchDetails) {
             client.get(getMangaUrl(manga), Fetch.DOCUMENT).asJsoup().let(::parseDetails)
         } else {
-            SManga.create()
+            manga
         }
-        val chapterList = if (fetchChapters) fetchPublicChapters(manga) else emptyList()
+        val chapterList = if (fetchChapters) fetchPublicChapters(manga) else chapters
         return SMangaUpdate(details, chapterList)
     }
 
@@ -140,7 +140,12 @@ abstract class ManhwaChi : KeiSource() {
         val slug = manga.url.substringAfter("/comic/", "").substringBefore('?').substringBefore('/')
         if (!slugRegex.matches(slug)) return emptyList()
 
-        return fetchPublicChapterNumbers(slug).map { number ->
+        // The catalog's explicit free flag is sufficient to show the chapter row.
+        // The access endpoint is an additional lock check; if it is temporarily
+        // unavailable, keep the row visible but getPageList still fails closed.
+        val freeNumbers = fetchFreeChapterNumbers(slug)
+        val lockedNumbers = runCatching { fetchLockedChapterNumbers(slug) }.getOrNull()
+        return freeNumbers.filterNot { number -> lockedNumbers?.contains(number) == true }.map { number ->
             SChapter.create().apply {
                 setUrlWithoutDomain("$baseUrl/reader.html?slug=$slug&ch=$number")
                 name = "چپتر $number"
@@ -150,25 +155,30 @@ abstract class ManhwaChi : KeiSource() {
         }.sortedByDescending { it.chapter_number }
     }
 
-    private suspend fun fetchPublicChapterNumbers(slug: String): Set<Int> {
-        if (!slugRegex.matches(slug)) return emptySet()
+    private suspend fun fetchPublicChapterNumbers(slug: String): Set<Int> =
+        fetchFreeChapterNumbers(slug) - fetchLockedChapterNumbers(slug)
 
+    private suspend fun fetchFreeChapterNumbers(slug: String): Set<Int> {
+        if (!slugRegex.matches(slug)) return emptySet()
         val catalog = client.get("$baseUrl/data/data.json".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
         val episodes = catalog.getObjectOrNull(slug)?.getArrayOrNull("episodes") ?: return emptySet()
-
-        val access = client.get("$baseUrl/api/access/chapters/$slug".toHttpUrl(), Fetch.XHR).parseAs<JsonObject>()
-        val lockedEntries = access.getArrayOrNull("locked")
-            ?: throw IllegalStateException("وضعیت دسترسی فصل‌ها قابل بررسی نیست؛ برای جلوگیری از نمایش فصل قفل‌شده دوباره تلاش کنید.")
-        val locked = lockedEntries.map { entry ->
-            (entry as? JsonObject)?.getIntOrNull("num")
-                ?: throw IllegalStateException("پاسخ وضعیت قفل فصل‌ها نامعتبر است؛ هیچ فصلی نمایش داده نمی‌شود.")
-        }.toSet()
-
         return episodes.mapNotNull { element ->
             val episode = element as? JsonObject ?: return@mapNotNull null
             val number = episode.getIntOrNull("num")?.takeIf { it > 0 } ?: return@mapNotNull null
-            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull == "true"
-            number.takeIf { isFree && number !in locked }
+            val isFree = episode["free"]?.jsonPrimitive?.contentOrNull.equals("true", ignoreCase = true)
+            number.takeIf { isFree }
+        }.toSet()
+    }
+
+    private suspend fun fetchLockedChapterNumbers(slug: String): Set<Int> {
+        if (!slugRegex.matches(slug)) return emptySet()
+        val access = client.get("$baseUrl/api/access/chapters/$slug".toHttpUrl(), Fetch.XHR)
+            .parseAs<JsonObject>()
+        val lockedEntries = access.getArrayOrNull("locked")
+            ?: throw IllegalStateException("وضعیت دسترسی فصل‌ها قابل بررسی نیست؛ برای جلوگیری از بازکردن فصل قفل‌شده دوباره تلاش کنید.")
+        return lockedEntries.map { entry ->
+            (entry as? JsonObject)?.getIntOrNull("num")
+                ?: throw IllegalStateException("پاسخ وضعیت قفل فصل‌ها نامعتبر است؛ هیچ فصلی باز نمی‌شود.")
         }.toSet()
     }
 
