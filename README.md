@@ -1,72 +1,53 @@
 # MangOn — افزونه‌های فارسی Mihon
 
-MangOn یک مخزن مستقل برای انتشار افزونه‌های فارسی سازگار با **Mihon** است. کد منبع در شاخهٔ `main` نگهداری می‌شود و خروجی قابل افزودن به Mihon به‌صورت خودکار در شاخهٔ `repo` منتشر می‌شود.
+MangOn یک مخزن مستقل از افزونه‌های فارسی سازگار با **Mihon** است. کد منبع در شاخهٔ `main` و خروجی امضاشده در شاخهٔ `repo` نگهداری می‌شود.
 
-## افزودن به Mihon
+## افزودن مخزن به Mihon
 
-مخزن امضاشده اکنون در شاخهٔ repo منتشر شده است. این آدرس را در بخش **Settings → Browse → Extension repositories → Add repository** وارد کنید:
+در Mihon به مسیر **Settings → Browse → Extension repositories → Add repository** بروید و این نشانی را اضافه کنید:
 
 ```text
 https://raw.githubusercontent.com/studio1111/MangOn/repo/repo.json
 ```
 
-فایل `repo.json` مشخصات مخزن و اثرانگشت کلید امضا را معرفی می‌کند؛ `index.pb` فهرست protobuf افزونه‌ها است و APK/JARها در همان شاخه میزبانی می‌شوند.
+Mihon فهرست افزونه‌ها را از `index.pb` دریافت می‌کند و APKها را با کلید امضای ثابت مخزن بررسی می‌کند. برای نصب دستی نیز می‌توانید از لینک‌های مستقیم زیر استفاده کنید.
 
-## امضا و انتشار
+## افزونه‌های منتشرشده
 
-انتشار مخزن به یک keystore پایدار نیاز دارد. workflow امضای APK و JAR را با همان کلید انجام می‌دهد، اثرانگشت SHA-256 گواهی را استخراج می‌کند، تطابق هر دو خروجی را بررسی می‌کند، سپس `index.pb` و `repo.json` را تولید و در شاخهٔ `repo` منتشر می‌کند.
+| افزونه | زبان | نسخه | شناسهٔ بسته | وضعیت |
+| --- | --- | --- | --- | --- |
+| GlobalComix | fa | 1.6.1 | `eu.kanade.tachiyomi.extension.fa.globalcomix` | <Link url="https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.globalcomix-v1.6.1.apk" title="دریافت APK"/> |
+| ManhwaChi | fa | 1.6.5 | `eu.kanade.tachiyomi.extension.fa.manhwachi` | <Link url="https://raw.githubusercontent.com/studio1111/MangOn/repo/apk/tachiyomi-fa.manhwachi-v1.6.5.apk" title="دریافت APK"/> |
 
-**کلید خصوصی را هرگز در Git، artifact عمومی یا گفتگو قرار ندهید.** راه‌اندازی اولیه با Termux در [راهنمای امضا و انتشار](docs/release-signing.md) آمده است. نام Secrets موردنیاز:
+- **ManhwaChi:** نمایش فصل‌های کاتالوگ با وضعیت آزاد، قفل‌شده یا نامشخص؛ بررسی مجدد مجوز دسترسی پیش از دریافت تصاویر؛ دریافت تصاویر از API واقعی reader به‌جای HTML خالی صفحه.
+- **GlobalComix:** جست‌وجو و فهرست فارسی؛ نگهداری شناسهٔ عددی در URL آثار فارسی؛ جلوگیری از دریافت فصل‌های Premium و صفحات پولی؛ فقط URLهای HTTPS برای تصاویر.
 
-- `SIGNING_KEYSTORE_B64`
-- `KEY_STORE_PASSWORD`
-- `ALIAS`
-- `KEY_PASSWORD`
+## اعتبارسنجی انتشار
 
-در Pull Requestها build و lint با کلید debug موقت انجام می‌شود؛ هیچ مخزن عمومی از آن خروجی منتشر نمی‌شود. انتشار فقط از `main` (push یا اجرای دستی workflow روی همین شاخه) انجام می‌شود و بدون هر چهار Secret متوقف خواهد شد؛ اجرای دستی روی شاخه‌های دیگر فقط build آزمایشی debug است.
+<badge color="success">Build و انتشار موفق</badge>
 
-## افزونه‌ها
+اجرای اصلی [Build #163](https://github.com/studio1111/MangOn/actions/runs/42815949140) در 2026-11-10 با موفقیت کامل شد:
 
-| نام | زبان | دامنه | وضعیت |
-| --- | --- | --- | --- |
-| ManhwaChi | fa | manhwachi.ir | مخزن امضاشده منتشر شده (1.6.2)؛ آزمون واقعی نصب در Mihon هنوز لازم است |
+- آزمون‌های Python تولید index و آزمون چندافزونه‌ای؛
+- Spotless، assembleRelease و lintRelease برای تمام ماژول‌های فارسی؛
+- امضای APK و JAR هر دو افزونه با keystore پایدار؛
+- تطابق اثرانگشت SHA-256 گواهی برای تمام خروجی‌ها؛
+- تولید `index.pb` و `repo.json`؛
+- انتشار در شاخهٔ `repo` و بررسی دسترسی index و تمام APKها از میزبان عمومی.
 
-## وضعیت نسخهٔ منتشرشده — 2026-11-09
+نسخه‌های امضاشده در شاخهٔ `repo` قرار دارند. آزمون نصب و اجرای واقعی روی دستگاه Mihon هنوز انجام نشده است.
 
-- اولین انتشار امضاشدهٔ مخزن Mihon در شاخهٔ repo تأیید شده است؛ [اجرای انتشار #62](https://github.com/studio1111/MangOn/actions/runs/42659789672) build، lint، امضای APK/JAR، تولید index.pb و بررسی میزبانی را با موفقیت گذراند.
-- نسخهٔ فعلی ManhwaChi در مخزن: **1.6.2** با versionCode=2. فایل APK و JAR در شاخهٔ repo قرار دارند؛ انتشار در GitHub Releases به‌صورت tag انجام نشده است.
-- برای افزودن مخزن از نشانی بالا استفاده کنید. نصب و آزمون واقعی روی دستگاه Mihon هنوز انجام نشده است.
-- [PR #14](https://github.com/studio1111/MangOn/pull/14) باز و mergeable است؛ نسخهٔ آزمایشی با versionCode=3 همهٔ فصل‌های کاتالوگ را نمایش می‌دهد. فصل فقط وقتی باز می‌شود که هم `free=true` باشد و هم API دسترسی آن را قفل‌شده اعلام نکند؛ در خطای API وضعیت «نامشخص» نمایش داده می‌شود و بازکردن مسدود است. CI در [run #65](https://github.com/studio1111/MangOn/actions/runs/42674771102) موفق است، اما PR هنوز ادغام و منتشر نشده است.
+## توسعه و معماری
 
-## وضعیت فعلی ManhwaChi
-
-- کاتالوگ فعلی data/data.json در snapshot مورخ 2026-11-09 شامل **30 اثر و 214 رکورد فصل** است. افزونه فهرست را از JSON می‌خواند، صفحه‌بندی 20تایی را در حافظه انجام می‌دهد و جست‌وجو را روی عنوان فارسی/انگلیسی، توضیح و ژانر اعمال می‌کند.
-- نسخهٔ منتشرشدهٔ 1.6.2 فقط فصل‌هایی را فهرست می‌کند که free=true باشند و در /api/access/chapters/{slug} قفل‌شده اعلام نشده باشند. در صورت نامعتبر یا غیرقابل‌دسترسی بودن پاسخ، fail-closed عمل می‌کند.
-- بازکردن فصل دوباره وضعیت را بررسی می‌کند و تصاویر را فقط از reader عمومی #reader .manhwa-panel img[src] می‌گیرد؛ URLهای امضاشدهٔ تصویر موقت‌اند و نباید cache دائمی شوند.
-- نمونهٔ زندهٔ «خطای دی. پژواک» (error-d-echo) یک فصل با free=true دارد؛ API فعلی locked=[] برگرداند و reader عمومی 16 تصویر ارائه کرد. بنابراین این فصل در دادهٔ فعلی باید قابل نمایش باشد.
-- «سرزمین فراموش‌شده» فصل 40 نیز در بررسی 2026-11-09 با free=true، locked=[] و 10 تصویر reader عمومی دیده شد؛ وضعیت قفل زمانی که در بررسی قبلی ثبت شده بود، در این snapshot دیگر برقرار نبود.
-- درخواست بازکردن فصل‌هایی که سایت همچنان قفل/اشتراکی نگه می‌دارد قابل پیاده‌سازی نیست. می‌توان metadata آن فصل‌ها را در Mihon نمایش داد، اما دسترسی reader باید تابع مجوز عمومی خود سایت بماند.
-
-## توسعه
-
-- ساخت و lint با toolchain ثابت Keiyoushi انجام می‌شود.
-- آزمون‌های تولید index در `.github/scripts/test_build_mihon_index.py` اجرا می‌شوند.
-- هر انتشار باید APK و JAR را با یک گواهی ثابت امضا کند؛ تطابق SHA-256 پیش از انتشار بررسی می‌شود.
-- انتشار فقط محتوای عمومی و مجاز را پشتیبانی می‌کند.
-- وضعیت buildها در [GitHub Actions](https://github.com/studio1111/MangOn/actions) قابل مشاهده است.
-
-## ساختار
-
-- `src/fa/` — افزونه‌های فارسی
-- `.github/workflows/build.yml` — build، امضا، تولید index و انتشار
-- `.github/scripts/build_mihon_index.py` — تولید index protobuf و descriptor
-- `.github/scripts/test_build_mihon_index.py` — آزمون‌های انتشار
-- `docs/source-audit.md` — ممیزی منابع
-- `docs/release-signing.md` — راه‌اندازی امن کلید امضا
-
-## پیوندها
-
-- [مخزن MangOn](https://github.com/studio1111/MangOn)
+- [معماری افزونه‌های Keiyoushi و سازوکار KSP/Gradle](docs/keiyoushi-architecture.md)
+- [ممیزی منابع و وضعیت دسترسی فصل‌ها](docs/source-audit.md)
+- [راهنمای امضا و انتشار امن](docs/release-signing.md)
+- [کد منبع](https://github.com/studio1111/MangOn/tree/main/src/fa)
 - [GitHub Actions](https://github.com/studio1111/MangOn/actions)
-- [Keiyoushi extensions-source](https://github.com/keiyoushi/extensions-source)
-- [راهنمای Mihon](https://mihon.app/)
+
+## الزامات امنیتی
+
+- محتوای قفل‌شده، اشتراکی، Premium یا صفحات پولی باز نمی‌شوند.
+- در صورت نامشخص بودن وضعیت دسترسی، reader بسته می‌ماند.
+- کلید خصوصی هرگز در Git، artifact عمومی یا گفتگو قرار نمی‌گیرد.
+- هر ماژول با قالب و toolchain رسمی Keiyoushi ساخته و در index امضاشده ثبت می‌شود.
