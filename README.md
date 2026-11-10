@@ -24,7 +24,7 @@ Mihon فهرست افزونه‌ها را از `index.pb` دریافت می‌ک
 
 ## اعتبارسنجی انتشار
 
-<badge color="success">Build و انتشار موفق</badge>
+**Build و انتشار موفق**
 
 اجرای اصلی [Build #163](https://github.com/studio1111/MangOn/actions/runs/42815949140) در 2026-11-10 با موفقیت کامل شد:
 
