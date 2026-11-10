@@ -1,39 +1,39 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-: "\${RUNNER_TEMP:?RUNNER_TEMP is required}"
-: "\${GITHUB_WORKSPACE:?GITHUB_WORKSPACE is required}"
-REPORT_DIR="\${RUNNER_TEMP}/mangon-rea-audit"
+: "${RUNNER_TEMP:?RUNNER_TEMP is required}"
+: "${GITHUB_WORKSPACE:?GITHUB_WORKSPACE is required}"
+REPORT_DIR="${RUNNER_TEMP}/mangon-rea-audit"
 CDP_ENDPOINT="http://127.0.0.1:9222"
-CHROME="\${REA_BROWSER_EXECUTABLE:-/usr/bin/google-chrome}"
+CHROME="${REA_BROWSER_EXECUTABLE:-/usr/bin/google-chrome}"
 REA_BIN="$(command -v rea || true)"
 
-mkdir -p "\${REPORT_DIR}/pages"
-manifest="\${REPORT_DIR}/manifest.tsv"
-printf 'target\turl\tpage_capture\tbundle_analysis\tbrowser_target_id\n' > "\${manifest}"
+mkdir -p "${REPORT_DIR}/pages"
+manifest="${REPORT_DIR}/manifest.tsv"
+printf 'target\turl\tpage_capture\tbundle_analysis\tbrowser_target_id\n' > "${manifest}"
 
 for command in curl jq timeout; do
-  command -v "\${command}" >/dev/null 2>&1 || {
-    echo "::error::Required command missing: \${command}"
+  command -v "${command}" >/dev/null 2>&1 || {
+    echo "::error::Required command missing: ${command}"
     exit 2
   }
 done
 
-if [[ -z "\${REA_BIN}" ]]; then
+if [[ -z "${REA_BIN}" ]]; then
   echo "::error::REA CLI is not installed or is not on PATH"
   exit 2
 fi
-if [[ ! -x "\${CHROME}" ]]; then
-  echo "::error::Chrome executable is unavailable: \${CHROME}"
+if [[ ! -x "${CHROME}" ]]; then
+  echo "::error::Chrome executable is unavailable: ${CHROME}"
   exit 2
 fi
 
-rea --version --json > "\${REPORT_DIR}/rea-version.json" 2> "\${REPORT_DIR}/rea-version.stderr" || true
-rea capabilities --json > "\${REPORT_DIR}/rea-capabilities.json" 2> "\${REPORT_DIR}/rea-capabilities.stderr" || true
+rea --version --json > "${REPORT_DIR}/rea-version.json" 2> "${REPORT_DIR}/rea-version.stderr" || true
+rea capabilities --json > "${REPORT_DIR}/rea-capabilities.json" 2> "${REPORT_DIR}/rea-capabilities.stderr" || true
 
-profile="\${RUNNER_TEMP}/mangon-rea-chrome-profile"
-mkdir -p "\${profile}"
-"\${CHROME}" \
+profile="${RUNNER_TEMP}/mangon-rea-chrome-profile"
+mkdir -p "${profile}"
+"${CHROME}" \
   --headless=new \
   --no-sandbox \
   --disable-dev-shm-usage \
@@ -44,27 +44,27 @@ mkdir -p "\${profile}"
   --no-default-browser-check \
   --remote-debugging-address=127.0.0.1 \
   --remote-debugging-port=9222 \
-  --user-data-dir="\${profile}" \
+  --user-data-dir="${profile}" \
   about:blank \
-  > "\${REPORT_DIR}/chrome.stdout.log" \
-  2> "\${REPORT_DIR}/chrome.stderr.log" &
+  > "${REPORT_DIR}/chrome.stdout.log" \
+  2> "${REPORT_DIR}/chrome.stderr.log" &
 chrome_pid=$!
 
 cleanup() {
-  kill "\${chrome_pid}" >/dev/null 2>&1 || true
-  wait "\${chrome_pid}" >/dev/null 2>&1 || true
+  kill "${chrome_pid}" >/dev/null 2>&1 || true
+  wait "${chrome_pid}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 ready=false
 for _ in $(seq 1 40); do
-  if curl --silent --fail "\${CDP_ENDPOINT}/json/version" >/dev/null 2>&1; then
+  if curl --silent --fail "${CDP_ENDPOINT}/json/version" >/dev/null 2>&1; then
     ready=true
     break
   fi
   sleep 1
 done
-if [[ "\${ready}" != true ]]; then
+if [[ "${ready}" != true ]]; then
   echo "::error::Chrome DevTools endpoint did not become ready"
   exit 2
 fi
@@ -100,84 +100,84 @@ targets=(
 capture_count=0
 success_count=0
 
-for item in "\${targets[@]}"; do
-  name="\${item%%|*}"
-  url="\${item#*|}"
-  page_dir="\${REPORT_DIR}/pages/\${name}"
-  mkdir -p "\${page_dir}"
+for item in "${targets[@]}"; do
+  name="${item%%|*}"
+  url="${item#*|}"
+  page_dir="${REPORT_DIR}/pages/${name}"
+  mkdir -p "${page_dir}"
 
-  echo "::group::REA audit \${name}"
-  printf '%s\n' "\${url}" > "\${page_dir}/target-url.txt"
+  echo "::group::REA audit ${name}"
+  printf '%s\n' "${url}" > "${page_dir}/target-url.txt"
 
   tab_json="$(curl --silent --show-error --fail --max-time 20 \
-    --request PUT --globoff "\${CDP_ENDPOINT}/json/new?\${url}" 2> "\${page_dir}/open.stderr")"
+    --request PUT --globoff "${CDP_ENDPOINT}/json/new?${url}" 2> "${page_dir}/open.stderr")"
   open_status=$?
   target_id=""
-  if [[ "\${open_status}" -eq 0 ]]; then
-    target_id="$(printf '%s' "\${tab_json}" | jq -r '.id // empty' 2>/dev/null || true)"
+  if [[ "${open_status}" -eq 0 ]]; then
+    target_id="$(printf '%s' "${tab_json}" | jq -r '.id // empty' 2>/dev/null || true)"
   fi
 
-  if [[ -z "\${target_id}" ]]; then
-    printf 'open_failed\t%s\n' "\${open_status}" > "\${page_dir}/status.txt"
-    printf '%s\t%s\topen_failed\topen_failed\t\n' "\${name}" "\${url}" >> "\${manifest}"
-    echo "::warning::Could not open public page \${url}"
+  if [[ -z "${target_id}" ]]; then
+    printf 'open_failed\t%s\n' "${open_status}" > "${page_dir}/status.txt"
+    printf '%s\t%s\topen_failed\topen_failed\t\n' "${name}" "${url}" >> "${manifest}"
+    echo "::warning::Could not open public page ${url}"
     echo "::endgroup::"
     continue
   fi
 
   capture_count=$((capture_count + 1))
-  printf '%s\n' "\${target_id}" > "\${page_dir}/browser-target-id.txt"
+  printf '%s\n' "${target_id}" > "${page_dir}/browser-target-id.txt"
   sleep 6
 
-  if timeout 90s "\${REA_BIN}" list-browser-targets "\${CDP_ENDPOINT}" --json \
-      > "\${page_dir}/rea-targets.json" 2> "\${page_dir}/rea-targets.stderr"; then
+  if timeout 90s "${REA_BIN}" list-browser-targets "${CDP_ENDPOINT}" --json \
+      > "${page_dir}/rea-targets.json" 2> "${page_dir}/rea-targets.stderr"; then
     target_status="listed"
   else
     target_status="list_failed"
   fi
 
-  if timeout 120s "\${REA_BIN}" inspect-web-page "\${CDP_ENDPOINT}" "\${target_id}" \
+  if timeout 120s "${REA_BIN}" inspect-web-page "${CDP_ENDPOINT}" "${target_id}" \
       --observation-ms 2500 \
       --include-accessibility-text \
       --include-console-text \
       --include-json-body-shapes \
       --include-script-sources \
       --json \
-      > "\${page_dir}/inspection.json" 2> "\${page_dir}/inspection.stderr"; then
+      > "${page_dir}/inspection.json" 2> "${page_dir}/inspection.stderr"; then
     inspect_status="success"
     success_count=$((success_count + 1))
   else
     inspect_status="failed"
   fi
 
-  if timeout 150s "\${REA_BIN}" analyze-web-bundle "\${CDP_ENDPOINT}" "\${target_id}" \
+  if timeout 150s "${REA_BIN}" analyze-web-bundle "${CDP_ENDPOINT}" "${target_id}" \
       --observation-ms 1000 \
       --fetch-source-maps \
       --json \
-      > "\${page_dir}/bundle.json" 2> "\${page_dir}/bundle.stderr"; then
+      > "${page_dir}/bundle.json" 2> "${page_dir}/bundle.stderr"; then
     bundle_status="success"
   else
     bundle_status="failed"
   fi
 
   printf 'target_list=%s\ninspection=%s\nbundle=%s\n' \
-    "\${target_status}" "\${inspect_status}" "\${bundle_status}" > "\${page_dir}/status.txt"
+    "${target_status}" "${inspect_status}" "${bundle_status}" > "${page_dir}/status.txt"
   printf '%s\t%s\t%s\t%s\t%s\n' \
-    "\${name}" "\${url}" "\${inspect_status}" "\${bundle_status}" "\${target_id}" >> "\${manifest}"
+    "${name}" "${url}" "${inspect_status}" "${bundle_status}" "${target_id}" >> "${manifest}"
 
   curl --silent --fail --max-time 10 --request PUT \
-    "\${CDP_ENDPOINT}/json/close/\${target_id}" >/dev/null 2>&1 || true
+    "${CDP_ENDPOINT}/json/close/${target_id}" >/dev/null 2>&1 || true
   echo "::endgroup::"
 done
 
 printf 'pages_opened=%s\ninspections_succeeded=%s\n' \
-  "\${capture_count}" "\${success_count}" > "\${REPORT_DIR}/summary.txt"
+  "${capture_count}" "${success_count}" > "${REPORT_DIR}/summary.txt"
 
-if [[ "\${capture_count}" -eq 0 ]]; then
+if [[ "${capture_count}" -eq 0 ]]; then
   echo "::error::REA could not open any candidate page"
   exit 1
 fi
-if [[ "\${success_count}" -eq 0 ]]; then
+if [[ "${success_count}" -eq 0 ]]; then
   echo "::error::REA did not produce any successful page inspection"
   exit 1
 fi
