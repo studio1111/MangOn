@@ -16,6 +16,7 @@ import keiyoushi.utils.getIntOrNull
 import keiyoushi.utils.getObjectOrNull
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.json.JsonObject
+import java.util.concurrent.CancellationException
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -144,7 +145,13 @@ abstract class ManhwaChi : KeiSource() {
         // The access endpoint is an additional lock check; if it is temporarily
         // unavailable, keep the row visible but getPageList still fails closed.
         val freeNumbers = fetchFreeChapterNumbers(slug)
-        val lockedNumbers = runCatching { fetchLockedChapterNumbers(slug) }.getOrNull()
+        val lockedNumbers = try {
+            fetchLockedChapterNumbers(slug)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            null
+        }
         return freeNumbers.filterNot { number -> lockedNumbers?.contains(number) == true }.map { number ->
             SChapter.create().apply {
                 setUrlWithoutDomain("$baseUrl/reader.html?slug=$slug&ch=$number")
