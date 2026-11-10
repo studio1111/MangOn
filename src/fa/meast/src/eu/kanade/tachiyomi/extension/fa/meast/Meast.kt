@@ -107,13 +107,12 @@ abstract class Meast : KeiSource() {
         mangaId: String,
         firstPage: Document,
     ): List<SChapter> {
-        val firstPageNumber = 1
         val maxPage = firstPage.select("a[href*='cpage=']").mapNotNull { link ->
             link.absUrl("href").toHttpUrl().queryParameter("cpage")?.toIntOrNull()
-        }.maxOrNull()?.coerceAtMost(100) ?: firstPageNumber
+        }.maxOrNull()?.coerceAtMost(100) ?: 1
 
-        val result = LinkedHashMap<String, SChapter>()
-        for (page in firstPageNumber..maxPage) {
+        val chapters = LinkedHashMap<String, SChapter>()
+        for (page in 1..maxPage) {
             val document = if (page == 1) {
                 firstPage
             } else {
@@ -124,10 +123,10 @@ abstract class Meast : KeiSource() {
                 client.get(pageUrl, Fetch.DOCUMENT).asJsoup()
             }
             MeastParser.parsePublicChapters(document, baseUrl, mangaId).forEach { chapter ->
-                result[chapter.url] = chapter
+                chapters[chapter.url] = chapter
             }
         }
-        return result.values.sortedByDescending { it.chapter_number }
+        return chapters.values.sortedByDescending { it.chapter_number }
     }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
