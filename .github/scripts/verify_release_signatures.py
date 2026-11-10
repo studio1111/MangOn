@@ -9,8 +9,8 @@ import sys
 from pathlib import Path
 
 
-APK_DIGEST = re.compile(r"certificate SHA-256 digest:\\s*([0-9a-f:]+)", re.IGNORECASE)
-JAR_DIGEST = re.compile(r"^\\s*SHA256:\\s*([0-9a-f:]+)\\s*$", re.IGNORECASE | re.MULTILINE)
+APK_DIGEST = re.compile(r"certificate SHA-256 digest:\s*([0-9a-f:]+)", re.IGNORECASE)
+JAR_DIGEST = re.compile(r"^\s*SHA256:\s*([0-9a-f:]+)\s*$", re.IGNORECASE | re.MULTILINE)
 FINGERPRINT = re.compile(r"^[0-9a-f]{64}$")
 
 
