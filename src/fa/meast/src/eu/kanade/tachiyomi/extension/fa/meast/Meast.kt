@@ -82,7 +82,7 @@ abstract class Meast : KeiSource() {
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate {
-        val mangaUrl = getMangaUrl(manga)
+        val mangaUrl = getMangaUrl(manga).toHttpUrl()
         val id = mangaId(mangaUrl) ?: throw IllegalArgumentException("شناسه اثر معتبر نیست.")
         val document = if (fetchDetails || fetchChapters) {
             client.get(mangaUrl, Fetch.DOCUMENT).asJsoup()
