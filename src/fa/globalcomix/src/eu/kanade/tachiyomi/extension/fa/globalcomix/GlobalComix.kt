@@ -116,7 +116,9 @@ abstract class GlobalComix :
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
         if (url.scheme != "https" || url.host != baseUrl.toHttpUrl().host ||
             url.pathSegments.firstOrNull() != "c"
-        ) return null
+        ) {
+            return null
+        }
         val mangaSlugId = url.pathSegments.getOrNull(1)?.takeIf { it.isNotEmpty() } ?: return null
 
         return fetchMangaBySlug(mangaSlugId)
