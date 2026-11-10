@@ -70,7 +70,7 @@ jobs:
 
       - name: Test Meast reader parser
         working-directory: upstream
-        run: ./gradlew :src:fa:meast:testReleaseUnitTest --no-daemon
+        run: ./gradlew :src:fa:meast:testReleaseUnitTest :src:fa:dangomanga:testReleaseUnitTest --no-daemon
 
       - name: Configure and verify stable signing key
         if: github.ref == 'refs/heads/main'
