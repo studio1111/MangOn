@@ -28,7 +28,7 @@
 ### CI، امضا و انتشار نهایی
 - [PR #17](https://github.com/studio1111/MangOn/pull/17) با squash merge در commit [ae6acfd504a4a5e06b4c394fb058783226e8a1e6](https://github.com/studio1111/MangOn/commit/ae6acfd504a4a5e06b4c394fb058783226e8a1e6) ادغام شد.
 - [PR run #162](https://github.com/studio1111/MangOn/actions/runs/42815308363) موفق شد: Python unit tests، Spotless، assembleRelease، lintRelease و upload artifact برای هر دو ماژول.
-- [Main publish run #163](https://github.com/studio1111/MangOn/actions/runs/42815949140) با نتیجهٔ success کامل شد. keystore پایدار اعتبارسنجی شد؛ هر دو APK و JAR با همان گواهی امضا شدند؛ SHA-256 certificate fingerprint برای هر چهار خروجی تأیید شد؛ index تولید شد؛ شاخهٔ `repo` منتشر شد و URLهای میزبانی‌شدهٔ descriptor، index و هر دو APK بررسی شدند.
+- [Main publish run #164](https://github.com/studio1111/MangOn/actions/runs/42817067965) با نتیجهٔ success کامل شد. keystore پایدار اعتبارسنجی شد؛ هر دو APK و JAR با همان گواهی امضا شدند؛ SHA-256 certificate fingerprint برای هر چهار خروجی تأیید شد؛ index تولید شد؛ شاخهٔ `repo` منتشر شد و URLهای میزبانی‌شدهٔ descriptor، index و هر دو APK بررسی شدند.
 - Fingerprint فعال: `2922be3a3774a0e1dfb8ff1fc75e73e4637703d3243d7ddc7f1fdbcfd3b070dd`.
 - `repo.json` و `index.pb` در شاخهٔ `repo` موجودند. index شامل دقیقاً دو package فارسی است؛ APK/JARهای هر دو ماژول در شاخهٔ `repo` موجود و URLهای APK از workflow قابل‌دسترسی تأیید شده‌اند.
 - ManhwaChi APK: `tachiyomi-fa.manhwachi-v1.6.6.apk`; GlobalComix APK: `tachiyomi-fa.globalcomix-v1.6.2.apk`.
