@@ -9,12 +9,15 @@ import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
 import keiyoushi.network.Fetch
 import keiyoushi.network.get
+import keiyoushi.network.post
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
 import keiyoushi.utils.getArrayOrNull
 import keiyoushi.utils.getIntOrNull
 import keiyoushi.utils.getObjectOrNull
 import keiyoushi.utils.parseAs
+import keiyoushi.utils.toJsonRequestBody
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -23,6 +26,12 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.jsoup.nodes.Document
+
+@Serializable
+private data class ChapterImagesRequest(
+    val slug: String,
+    val chapterNum: Int,
+)
 
 @Source
 abstract class ManhwaChi : KeiSource() {
@@ -195,11 +204,22 @@ abstract class ManhwaChi : KeiSource() {
         val isStillFree = fetchFreeCatalogChapters(slug).any { it.number == number }
         if (!isStillFree) return emptyList()
 
-        val document = client.get(chapterUrl, Fetch.DOCUMENT).asJsoup()
-        val images = document.select("#reader .manhwa-panel img[src]")
-            .map { it.absUrl("src") }
-            .filter(String::isNotBlank)
+        // The reader fills #reader through a POST request after JavaScript runs.
+        // Fetching its HTML directly always returns an empty reader container.
+        val response = client.post(
+            "$baseUrl/api/get-chapter-images",
+            headers,
+            Fetch.XHR.from(chapterUrl),
+            ChapterImagesRequest(slug, number).toJsonRequestBody(),
+        )
+        val urls = response.parseAs<JsonObject>()
+            .getArrayOrNull("urls")
+            .orEmpty()
+            .mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+            .mapNotNull { it.toHttpUrlOrNull() }
+            .filter { it.isHttps && it.host.isNotBlank() }
             .distinct()
-        return images.mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
+
+        return urls.mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl.toString()) }
     }
 }
