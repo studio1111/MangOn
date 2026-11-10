@@ -160,15 +160,7 @@ abstract class Meast : KeiSource() {
         check(chapterId > 0 && mangaId > 0) { "شناسه فصل یا اثر معتبر نیست." }
 
         val document = client.get(url, Fetch.DOCUMENT).asJsoup()
-        val images = document.select("#reader-content img.reader-image[src]")
-            .map { it.absUrl("src") }
-            .filter { image ->
-                runCatching {
-                    val imageUrl = image.toHttpUrl()
-                    imageUrl.scheme == "https" && imageUrl.host.isNotBlank()
-                }.getOrDefault(false)
-            }
-            .distinct()
+        val images = MeastParser.parseReaderImages(document)
         check(images.isNotEmpty()) {
             "این قسمت رایگان و عمومی نیست یا دسترسی آن تغییر کرده است."
         }
