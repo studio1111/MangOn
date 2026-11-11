@@ -150,8 +150,7 @@ abstract class MangaBox : KeiSource() {
         return images.mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
     }
 
-    private fun isWorkUrl(url: HttpUrl): Boolean =
-        isSourceUrl(url) && url.pathSegments.firstOrNull() == "work" && url.pathSegments.getOrNull(1)?.isNotBlank() == true
+    private fun isWorkUrl(url: HttpUrl): Boolean = isSourceUrl(url) && url.pathSegments.firstOrNull() == "work" && url.pathSegments.getOrNull(1)?.isNotBlank() == true
 
     private fun isSourceUrl(url: HttpUrl): Boolean = url.scheme == "https" && url.host == baseUrl.toHttpUrl().host
 }
