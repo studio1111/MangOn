@@ -149,11 +149,13 @@ abstract class ManhwaChi : KeiSource() {
         fetchChapters: Boolean,
     ): SMangaUpdate {
         val details = if (fetchDetails) {
-            client.get(getMangaUrl(manga), Fetch.DOCUMENT).asJsoup().let(::parseDetails)
+            client.get(getMangaUrl(manga), Fetch.DOCUMENT).asJsoup()
+                .let(::parseDetails)
+                .apply { url = manga.url }
         } else {
-            SManga.create()
+            manga
         }
-        val chapterList = if (fetchChapters) fetchPublicChapters(manga) else emptyList()
+        val chapterList = if (fetchChapters) fetchPublicChapters(manga) else chapters
         return SMangaUpdate(details, chapterList)
     }
 
