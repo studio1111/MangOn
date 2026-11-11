@@ -39,6 +39,9 @@ Mihon فهرست افزونه‌ها را از `index.pb` دریافت می‌ک
 
 ## توسعه و معماری
 
+- [گزارش جست‌وجوی منابع فارسی و وضعیت نامزدهای جدید](docs/source-research-2026-11-10.md)
+- [طرح و برنامهٔ گسترش منابع](docs/superpowers/specs/2026-11-10-persian-source-expansion-design.md) · [برنامهٔ اجرا](docs/superpowers/plans/2026-11-10-persian-source-expansion.md)
+
 - [معماری افزونه‌های Keiyoushi و سازوکار KSP/Gradle](docs/keiyoushi-architecture.md)
 - [ممیزی منابع و وضعیت دسترسی فصل‌ها](docs/source-audit.md)
 - [راهنمای امضا و انتشار امن](docs/release-signing.md)

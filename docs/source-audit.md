@@ -277,3 +277,10 @@
 - بنابراین نصب plugin در این محیط ممکن نیست. فایل ریشهٔ `AGENTS.md` موجود حفظ شده و قواعد آن (بررسی upstream، تغییر حداقلی، رعایت دسترسی عمومی، تست و عدم ثبت اسرار) به‌عنوان fallback قابل‌حمل اجرا می‌شوند؛ هیچ دستورالعمل قبلی حذف نشده است.
 
 منابع بررسی‌شده: [Ponytail package](https://pi.dev/packages/@dietrichgebert/ponytail)، [Ponytail agent portability](https://github.com/DietrichGebert/ponytail/blob/main/docs/agent-portability.md)، [GlobalComix FAQ](https://globalcomix.com/support/faq).
+
+
+## بررسی گسترش منابع — 2026-11-10
+
+گزارش جست‌وجوی جدید و ماتریس نامزدها در [docs/source-research-2026-11-10.md](source-research-2026-11-10.md) ثبت شده است. در این بررسی، Mangariom و MangaBox به‌عنوان نامزدهای نیازمند تأیید reader باقی ماندند؛ ManEast، Mangate، Mangato، MangaMic، MangaUp، Twomanga، Manhwa Tower و Illustory به‌دلیل reader عمومیِ تأییدنشده، ورود/پرداخت/محدودیت جغرافیایی یا دادهٔ نمونه‌ای فعلاً وارد کدنویسی نشدند. Comic City نیز محتوای عمومی بدون اشتراک نشان می‌دهد، اما برای مطالعه به اپلیکیشن خودش ارجاع می‌دهد و reader وب/تصاویر مستقل تأیید نشد.
+
+در جست‌وجوی تکمیلی Firecrawl، کار به سقف اعتبار رسید و نتیجهٔ ناقص بود؛ هیچ ادعای جامع بودن یا اتمام مهندسی معکوس همهٔ سایت‌ها ثبت نشده است. WEBTOON و MANGA Plus به‌عنوان منابع رسمی بین‌المللی در گروه جداگانه دیده شدند، اما این مخزن در حال حاضر فقط افزونه‌های فارسی را هدف می‌گیرد و reader/شرایط هر نسخه باید جداگانه ارزیابی شود.
