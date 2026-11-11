@@ -16,7 +16,3 @@ keiyoushi {
         baseUrl = "https://manhwachi.ir"
     }
 }
-
-dependencies {
-    testImplementation(libs.junit)
-}
