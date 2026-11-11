@@ -1,3 +1,49 @@
+**ممیزی هفتگی:** 2026-11-11. این بخش جایگزین snapshotهای قدیمی‌تر برای وضعیت فعلی است. هیچ ورود، اشتراک، قفل زمانی، محدودیت جغرافیایی یا کنترل ضدربات دور زده نشده است. اعتبارسنجی ManhwaChi از probe عمومی ثبت‌شده در [PR #20](https://github.com/studio1111/MangOn/pull/20) در همان روز است؛ در این نشست، مرورگر وب نتوانست دامنهٔ ManhwaChi را مستقلاً باز کند.
+
+## ممیزی هفتگی — 2026-11-11
+
+### CI و انتشار
+
+- [Build #177](https://github.com/studio1111/MangOn/actions/runs/43054753697) روی commit `0bbb7d6aadf501c634226a0374880323c548bf05` با نتیجهٔ `success` تمام شد. ۱۹ آزمون Python، Spotless، `assembleRelease` و `lintRelease` برای هر دو ماژول، بررسی امضای APK/JAR، تولید index و انتشار شاخهٔ `repo` همگی موفق بودند.
+- میزبان عمومی در job انتشار، `repo.json`، `index.pb` و URL تمام APKها را با موفقیت بررسی کرد: **۲ افزونه** در index.
+- artifact با نام `mangon-release-bundle`، شناسهٔ `13870578289`، حجم 229,301 بایت و انقضای `2026-11-18T16:08:27Z` دارد. digest ثبت‌شده SHA-256 آرشیو artifact است، نه هش APK.
+- شاخهٔ `repo` اکنون APK/JARهای امضاشدهٔ GlobalComix 1.6.2 و ManhwaChi 1.6.8، به‌همراه `index.pb` و `repo.json` را دارد. نصب و اجرای واقعی روی دستگاه Mihon هنوز آزمایش نشده است.
+- [Build #176](https://github.com/studio1111/MangOn/actions/runs/43054597016) نیز پس از ارتقای toolchain با موفقیت build، lint، امضا و انتشار نسخهٔ 1.6.7 را انجام داد؛ #177 نسخهٔ 1.6.8 را جایگزین کرد.
+- شکست‌های PR runهای [#168](https://github.com/studio1111/MangOn/actions/runs/43051261026) و [#169](https://github.com/studio1111/MangOn/actions/runs/43051763589) ناشی از درخواست task ناموجود `:src:fa:manhwachi:testReleaseUnitTest` بود، نه خطای Kotlin یا parser. PR #20 این task نامعتبر را حذف و آزمون قرارداد URL را به runner استاندارد Python منتقل کرد؛ run #172 و سپس main #173 سبز شدند.
+- [PR #22](https://github.com/studio1111/MangOn/pull/22) با دو regression guard، باگ refresh جزئی را اصلاح کرد: وقتی Mihon فقط جزئیات یا فقط فصل‌ها را درخواست می‌کند، دادهٔ بخش دیگر دیگر پاک نمی‌شود؛ URL اثر نیز پس از refresh جزئیات حفظ می‌شود. run [#175](https://github.com/studio1111/MangOn/actions/runs/43054184976) با ۱۹ تست، build و lint موفق شد و تغییر در commit `0bbb7d6` ادغام شد.
+- pin قبلی Keiyoushi، یعنی `ee661f5233b346559fbdd53993d447c318c5aef0`، ۲۲۲ commit عقب بود. [PR #21](https://github.com/studio1111/MangOn/pull/21) pin را به upstream HEAD یعنی `d0478bb62bbc485753d2830102aef4e1b87cb336` ارتقا داد؛ run [#174](https://github.com/studio1111/MangOn/actions/runs/43053769823) روی Gradle 9.9.0 و Android Gradle Plugin 9.5.1، Spotless، assemble و lint را با موفقیت گذراند. main نیز در #176 و #177 روی همین pin سبز شد. قراردادهای `KeiSource`، `@Source`، DSL، `Fetch` و helperهای `get/post` مورد استفادهٔ MangOn بدون تغییر ناسازگار باقی مانده‌اند.
+- workflow نگهداری [#125](https://github.com/studio1111/MangOn/actions/runs/43055393343) موفق شد؛ شمار کل runهای باقی‌مانده پس از cleanup دقیقاً **۳۰** است. run فعال حذف نشد.
+
+### وضعیت منابع
+
+| منبع | کاتالوگ | جزئیات و فهرست فصل | فصل رایگان عمومی | URL تصاویر reader | تصمیم |
+| --- | --- | --- | --- | --- | --- |
+| [ManhwaChi](https://manhwachi.ir) | تأیید؛ JSON با ۳۰ اثر در probe همان روز | جزئیات عمومی و فهرست فصل از catalog | فصل ۳۹ عمومی؛ فصل ۴۱ در access API قفل بود و درخواست نشد | POST عمومی فصل ۳۹، ۹ URL نسبی مرتب برگرداند؛ فصل ۴۰ در probe قبلی ۱۰ تصویر داشت | تنها منبع کامل تأییدشده؛ URL نسبی اکنون resolve و محدود به HTTPS/مبدأ/مسیر مجاز است |
+| [MangaUp](https://mangaup.ir) | صفحهٔ کاتالوگ عمومی | جزئیات نمونه عمومی؛ برچسب «اشتراکی» و تب فصل‌ها دیده شد، اما محتوای فصل در snapshot فعلی استخراج نشد | audit قبلی: reader نمونهٔ فصل رایگان به `/login` redirect شد | URL تصویر عمومی تأیید نشده | عدم پیاده‌سازی |
+| [ManEast](https://maneast.fun) | کاتالوگ عمومی | جزئیات و تب فصل‌ها عمومی؛ audit قبلی برای نمونه ۵۳۵ رکورد فصل و ۲ فصل با پرچم رایگان ثبت کرد | reader نمونه به `/login` redirect شد | تأیید نشد | عدم پیاده‌سازی؛ پرچم رایگان جای دسترسی reader را نمی‌گیرد |
+| [Mangate](https://mangate.ir) | کاتالوگ عمومی | جزئیات عمومی؛ صفحهٔ فعلی طرح‌های اشتراک ۳۰/۶۰/۹۰روزه را نشان می‌دهد | audit قبلی: reader نمونه به `/login` redirect شد؛ سایت صریحاً محدودیت نمایش خارج از ایران دارد | تأیید نشد | عدم پیاده‌سازی؛ هیچ محدودیتی دور زده نشد |
+| [MangaRiom](https://mangariom.top) | کاتالوگ عمومی | جزئیات عمومی و نمونه با حدود ۹۳۰ قسمت | کلیک «شروع مطالعه» و «آخرین قسمت» به صفحهٔ ورود/ثبت‌نام رفت | تأیید نشد | عدم پیاده‌سازی |
+| [GlobalComix فارسی](https://globalcomix.com/browse/fa/manga) | کاتالوگ عمومی | issue نمونهٔ «غروب (3)» دارای ۲۶ صفحه است | preview عمومی فقط صفحات ۱ تا ۹ را فهرست می‌کند؛ ۱۶ صفحهٔ دیگر در preview نیست | مسیر reader عمومی باز شد، اما مرورگر این نشست URL مستقیم CDN تصویر را استخراج نکرد | افزونهٔ موجود حفظ شد؛ کد فقط صفحه‌های غیر-Premium و غیرپولی را می‌پذیرد |
+| [Mangato](https://mangato.ir) | کاتالوگ عمومی | جزئیات و بسته‌های دانلود؛ نمونهٔ «Log-in Murim» فقط دانلودی اعلام شده است | reader وب برای نمونه وجود ندارد | وجود ندارد | منبع دانلودی، نه reader استاندارد Mihon |
+| [MangaBox](https://mangabox.ir) | در ممیزی قبلی candidate بود؛ درخواست مستقیم این نوبت timeout شد | جزئیات/فهرست فعلی مستقلاً تأیید نشد | تأیید نشد | تأیید نشد | hold؛ افزونهٔ branch #15 وارد main نشد |
+| [Meast](https://meast.ir) | کاتالوگ عمومی با ۴ اثر | کلیک به جزئیات نمونه timeout شد | تأیید نشد | تأیید نشد | hold؛ این دامنه با [ManEast](https://maneast.fun) متفاوت است |
+| [ComicCity](https://www.comic-city.ir) | صفحهٔ برنامهٔ انتشار هفتگی عمومی | مسیر فصل/reader استاندارد در این نوبت تأیید نشد | تأیید نشد | توالی تصاویر reader تأیید نشد | عدم پیاده‌سازی |
+| [Illustory](https://illustory.ir) | نتایج جست‌وجو محتوای نمونه‌ای نشان می‌دهد | صفحهٔ مستقیم در این نوبت HTTP 521 داد | تأیید نشد | تأیید نشد | hold؛ دادهٔ index‌شده کافی نیست |
+
+- در MangaUp، ManEast و Mangate، مقدار `isFree=true` یا badge رایگان فقط metadata است؛ بدون reader عمومی و URL تصویر قابل‌دسترسی، مجوز ساخت افزونه نیست.
+- MangaBox و Meast در branch قدیمی PR #15 کد دارند، اما آن branch evidence زندهٔ کامل و CI قابل اتکا برای reader ارائه نمی‌کند. parser فعلی Meast در صورت وجود anchor در ردیف قفل‌شده آن را صریحاً رد نمی‌کند و host تصاویر را به allowlist محدود نکرده است؛ بنابراین ادغام آن ناامن است. Meast نیز جایگزین ManEast نیست.
+- PR #19 (Extension Forge) build سبز دارد، اما ابزار فعلی DNS را پیش از اتصال اعتبارسنجی می‌کند و درخواست HTTP را با resolve جداگانه انجام می‌دهد؛ شکاف DNS-rebinding/SSRF باقی است. تا زمانی که اتصال به IP اعتبارسنجی‌شده bind و redirectها نیز مجدداً امن‌سازی نشوند، ادغام نمی‌شود.
+- [MangaMic](https://mangamic.com)، [Twomanga](https://twomanga.top)، [MinatoManhwa](https://www.minatomanhwa.com)، BookKhan و سایر candidateهای تاریخی در این نوبت زنجیرهٔ کامل reader را تأیید نکردند؛ snapshotهای قبلی آن‌ها همچنان در بخش‌های تاریخی پایین‌تر ثبت شده‌اند.
+- هیچ افزونهٔ حدسی جدیدی اضافه نشد. تنها دو ماژول منتشرشده GlobalComix و ManhwaChi هستند.
+
+### محدودیت‌ها و کار باقی‌مانده
+
+- سهمیهٔ Firecrawl در دسترس نبود؛ صفحات عمومی با جست‌وجو و مرورگر وب بررسی شدند. ManhwaChi و MangaBox در ابزار مرور مستقیم قابل دریافت نبودند و وضعیت آن‌ها بر اساس probe ثبت‌شده یا به‌صورت «تأییدنشده» گزارش شده است.
+- نصب و smoke test در برنامهٔ Mihon روی دستگاه Android هنوز باید انجام شود؛ CI و انتشار عمومی جای آن را نمی‌گیرند.
+- Ponytail رسمی در runtime این محیط قابل نصب نیست؛ `AGENTS.md` و قواعد مهندسی موجود حفظ شدند. Supabase و OpenAI API برای مخزن ایستای افزونه لازم نیستند و اضافه نشدند.
+
+---
+
 **آخرین بازبینی زنده:** 2026-11-11، حدود 15:28 UTC. بخش‌های دارای تاریخ قدیمی‌تر snapshot تاریخی‌اند و وضعیت فعلی را نشان نمی‌دهند. بررسی فنی به‌معنی مجوز بازنشر آثار نیست؛ هیچ ورود، پرداخت، قفل اشتراک، محدودیت جغرافیایی یا کنترل ضدربات دور زده نشده است.
 
 ## آخرین ممیزی — 2026-11-11
