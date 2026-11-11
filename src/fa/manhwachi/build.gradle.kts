@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "ManhwaChi"
-    versionCode = 6
+    versionCode = 7
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
 
@@ -15,4 +15,8 @@ keiyoushi {
         lang = "fa"
         baseUrl = "https://manhwachi.ir"
     }
+}
+
+dependencies {
+    testImplementation(libs.junit)
 }
