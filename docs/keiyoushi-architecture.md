@@ -96,3 +96,18 @@ A source module is added only after public catalog, details, chapter listing, an
 MangOn lists chapter metadata with explicit FREE, LOCKED, or UNKNOWN status. It requests reader images only after a fresh access check confirms FREE. An unavailable or malformed access response must never be treated as permission.
 
 No login, subscription, timed lock, paywall, geographic restriction, or anti-bot control is bypassed. A source that cannot be read through a public, permitted path remains documented as unsupported rather than receiving a speculative extension.
+
+## 8. Current upstream validation — 2026-11-11
+
+The build workflow now pins Keiyoushi `extensions-source` to upstream commit `d0478bb62bbc485753d2830102aef4e1b87cb336`. This snapshot uses Gradle 9.9.0 and Android Gradle Plugin 9.5.1. The previous pin (`ee661f5233b346559fbdd53993d447c318c5aef0`) was 222 commits behind.
+
+The current upstream contribution guide and source tree were reviewed before changing the pin. The contracts used by MangOn remain compatible:
+
+- `KeiSource` and the required suspend overrides;
+- `@Source` registration and generated KSP entry point;
+- the `keiyoushi { source { } }` Gradle DSL;
+- `Fetch` and the suspend OkHttp `get` / `post` helpers.
+
+Upstream changes since the previous pin include core browser-header/network handling, WebView, ZIP support, core tests, and Gradle/AGP updates. MangOn's adapters do not directly depend on the changed WebView or ZIP APIs. The current pin passed a PR build on run [#174](https://github.com/studio1111/MangOn/actions/runs/43053769823), then a signed main build and public repository verification on [#176](https://github.com/studio1111/MangOn/actions/runs/43054597016) and [#177](https://github.com/studio1111/MangOn/actions/runs/43054753697).
+
+The workflow still overlays only `src/fa/*` and explicitly loads MangOn's Persian modules. It does not build unrelated upstream extension modules. The pin is a reviewed, tested snapshot rather than an unpinned moving branch.
