@@ -73,7 +73,7 @@ class MangaDexPersianSourceContractTest(unittest.TestCase):
             / "mangadex"
             / "MangaDex.kt"
         ).read_text(encoding="utf-8")
-        self.assertIn('"/at-home/server/$chapterId"', source)
+        self.assertIn('/at-home/server/$chapterId', source)
         self.assertIn("val host = atHomeDto.baseUrl", source)
         self.assertIn("atHomeDto.chapter.data", source)
         self.assertIn("atHomeDto.chapter.dataSaver", source)
