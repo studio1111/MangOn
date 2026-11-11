@@ -8,7 +8,7 @@
 - درخواست عمومی POST به `/api/get-chapter-images` برای فصل ۳۹ بدون ورود، HTTP 200 و آرایهٔ `urls` با ۹ تصویر مرتب برگرداند. تمام URLها نسبی‌اند، مانند `/chapter-image/manhwas/the-forgotten-field/CH39/001.webp`؛ میزبان واقعی پس از resolve برابر `manhwachi.ir` است. صفحهٔ reader فصل ۴۰ نیز ۱۰ تصویر عمومی نشان داد؛ فصل ۴۱ درخواست نشد و قفل آن دور زده نشد.
 - **ریشهٔ خطا:** parser قبلی هر رشتهٔ تصویر را مستقیماً با `toHttpUrlOrNull()` تجزیه می‌کرد. این تابع URL نسبی را نمی‌پذیرد؛ در نتیجه تمام ۹ URL معتبر به `null` تبدیل و Mihon با فهرست خالی صفحات مواجه می‌شد.
 - **اصلاح در branch `fix/manhwachi-relative-reader-images`:** URL نسبی با `sourceUrl.resolve()` به HTTPS تبدیل می‌شود؛ فقط همان host و port مبدأ، بدون user-info و با مسیر `/chapter-image/manhwas/` پذیرفته می‌شود. query امضاشده حفظ و ترتیب پاسخ API دست‌نخورده می‌ماند. URL خارجی، HTTP، مسیر نامرتبط و port متفاوت رد می‌شود.
-- برای resolver هفت سناریوی JUnit اضافه شد؛ `testReleaseUnitTest` در workflow برای ماژول‌هایی که تست دارند، هم در build مربوط به PR و هم در publish اصلی اجرا می‌شود. `versionCode` از ۶ به ۷ ارتقا یافته و نسخهٔ هدف 1.6.7 است. نتیجهٔ CI و انتشار امضاشده پس از تکمیل workflow در همین گزارش تکمیل خواهد شد.
+- برای resolver آزمون قرارداد با `unittest` استاندارد Python اضافه شد؛ runner موجود `test_*.py` آن را در CI اجرا می‌کند. افزونهٔ Keiyoushi task استاندارد `testReleaseUnitTest` ندارد، بنابراین JUnit dependency و Gradle test task به ماژول تحمیل نشدند. `versionCode` از ۶ به ۷ ارتقا یافته و نسخهٔ هدف 1.6.7 است. نتیجهٔ build/lint پس از تکمیل workflow در همین گزارش تکمیل خواهد شد.
 
 ### بررسی زندهٔ منابع فارسی
 
