@@ -106,5 +106,22 @@ class ManhwaChiReaderImageUrlTest(unittest.TestCase):
         )
 
 
+class ManhwaChiUpdateContractTest(unittest.TestCase):
+    def test_refresh_preserves_existing_manga_when_details_are_not_requested(self):
+        source = load_manhwachi_source()
+        start = source.index("override suspend fun fetchMangaUpdate(")
+        end = source.index("private suspend fun fetchPublicChapters", start)
+        update_method = source[start:end]
+        self.assertIn("else {\n            manga\n        }", update_method)
+        self.assertIn(".apply { url = manga.url }", update_method)
+
+    def test_refresh_preserves_existing_chapters_when_chapter_fetch_is_not_requested(self):
+        source = load_manhwachi_source()
+        start = source.index("override suspend fun fetchMangaUpdate(")
+        end = source.index("private suspend fun fetchPublicChapters", start)
+        update_method = source[start:end]
+        self.assertIn("else chapters", update_method)
+
+
 if __name__ == "__main__":
     unittest.main()
