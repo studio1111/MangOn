@@ -33,7 +33,7 @@
 - در MangaUp، ManEast و Mangate، مقدار `isFree=true` یا badge رایگان فقط metadata است؛ بدون reader عمومی و URL تصویر قابل‌دسترسی، مجوز ساخت افزونه نیست.
 - MangaBox و Meast در branch قدیمی PR #15 کد دارند، اما آن branch evidence زندهٔ کامل و CI قابل اتکا برای reader ارائه نمی‌کند. parser فعلی Meast در صورت وجود anchor در ردیف قفل‌شده آن را صریحاً رد نمی‌کند و host تصاویر را به allowlist محدود نکرده است؛ بنابراین ادغام آن ناامن است. Meast نیز جایگزین ManEast نیست.
 - PR #19 (Extension Forge) build سبز دارد، اما ابزار فعلی DNS را پیش از اتصال اعتبارسنجی می‌کند و درخواست HTTP را با resolve جداگانه انجام می‌دهد؛ شکاف DNS-rebinding/SSRF باقی است. تا زمانی که اتصال به IP اعتبارسنجی‌شده bind و redirectها نیز مجدداً امن‌سازی نشوند، ادغام نمی‌شود.
-- [MangaMic](https://mangamic.com)، [Twomanga](https://twomanga.top)، [MinatoManhwa](https://www.minatomanhwa.com)، BookKhan و سایر candidateهای تاریخی در این نوبت زنجیرهٔ کامل reader را تأیید نکردند؛ snapshotهای قبلی آن‌ها همچنان در بخش‌های تاریخی پایین‌تر ثبت شده‌اند.
+- [MangaMic](https://mangamic.com)، [Twomanga](https://twomanga.top)، [MinatoManhwa](https://www.minatomanhwa.com)، BookKhan و سایر candidateهای تاریخی در این نوبت دوباره بررسی نشدند؛ snapshotهای قبلی آن‌ها در بخش‌های تاریخی پایین‌تر ثبت شده‌اند و برای تصمیم جدید باید دوباره probe شوند.
 - هیچ افزونهٔ حدسی جدیدی اضافه نشد. تنها دو ماژول منتشرشده GlobalComix و ManhwaChi هستند.
 
 ### محدودیت‌ها و کار باقی‌مانده
