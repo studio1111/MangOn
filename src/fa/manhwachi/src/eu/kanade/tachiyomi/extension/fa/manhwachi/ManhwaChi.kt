@@ -262,7 +262,6 @@ abstract class ManhwaChi : KeiSource() {
     }
 }
 
-
 internal fun resolveReaderImageUrl(rawUrl: String, sourceUrl: HttpUrl): HttpUrl? {
     val imageUrl = sourceUrl.resolve(rawUrl) ?: return null
     return imageUrl.takeIf {
