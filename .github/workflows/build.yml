@@ -118,8 +118,6 @@ jobs:
           for module in modules:
               print(f":src:fa:{module}:assembleRelease")
               print(f":src:fa:{module}:lintRelease")
-              if Path(f"../mangon/src/fa/{module}/src/test").is_dir():
-                  print(f":src:fa:{module}:testReleaseUnitTest")
           PY
           mapfile -t gradle_tasks < /tmp/gradle-tasks
           ./gradlew "${gradle_tasks[@]}" --no-daemon
@@ -145,8 +143,6 @@ jobs:
           for module in modules:
               print(f":src:fa:{module}:assembleRelease")
               print(f":src:fa:{module}:lintRelease")
-              if Path(f"../mangon/src/fa/{module}/src/test").is_dir():
-                  print(f":src:fa:{module}:testReleaseUnitTest")
           PY
           mapfile -t gradle_tasks < /tmp/gradle-tasks
           ./gradlew "${gradle_tasks[@]}" --no-daemon --no-configuration-cache
