@@ -255,10 +255,22 @@ abstract class ManhwaChi : KeiSource() {
             .getArrayOrNull("urls")
             .orEmpty()
             .mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
-            .mapNotNull { it.toHttpUrlOrNull() }
-            .filter { it.isHttps && it.host.isNotBlank() }
+            .mapNotNull { resolveReaderImageUrl(it, sourceUrl) }
             .distinct()
 
         return urls.mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl.toString()) }
+    }
+}
+
+
+internal fun resolveReaderImageUrl(rawUrl: String, sourceUrl: HttpUrl): HttpUrl? {
+    val imageUrl = sourceUrl.resolve(rawUrl) ?: return null
+    return imageUrl.takeIf {
+        it.isHttps &&
+            it.host == sourceUrl.host &&
+            it.port == sourceUrl.port &&
+            it.username.isEmpty() &&
+            it.password.isEmpty() &&
+            it.encodedPath.startsWith("/chapter-image/manhwas/")
     }
 }
