@@ -2,6 +2,8 @@
 
 This document records the upstream implementation model used by MangOn. It is based on the pinned Keiyoushi source tree used by the MangOn build workflow and the upstream extension plugin, KSP processor, source base class, bootstrap script, and contributor guide.
 
+**Validated upstream baseline (2026-11-11):** `d0478bb62bbc485753d2830102aef4e1b87cb336` (current `main` at audit time), Gradle 9.9.0 and Android Gradle Plugin 9.5.1. The updated pin passed PR validation and a signed main-branch build, lint, signature verification, and repository publication.
+
 ## 1. Repository layout
 
 Keiyoushi is a Gradle multi-project build. The relevant top-level components are:
