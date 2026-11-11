@@ -42,6 +42,10 @@ artifact با نام `mangon-release-bundle` و شناسهٔ `13870578289` از 
 
 نسخه‌های امضاشده در [شاخهٔ repo](https://github.com/studio1111/MangOn/tree/repo) قرار دارند. آزمون نصب و اجرای واقعی روی دستگاه Mihon هنوز انجام نشده است؛ موفقیت CI جایگزین آزمون دستگاه نیست.
 
+## سازندهٔ خودکار افزونه‌ها
+
+زیرسامانهٔ در حال توسعهٔ [MangOn Extension Forge](tools/extension-forge/README.md) برای تحلیل شواهد سایت و آماده‌سازی مسیر تولید افزونه‌های Keiyoushi است. در مرحلهٔ فعلی، تحلیل‌گر اولیهٔ URL و HTML پیاده‌سازی شده؛ تولید کد Kotlin و اعتبارسنجی کامل سایت‌ها مراحل بعدی هستند.
+
 ## توسعه و معماری
 
 - [معماری افزونه‌های Keiyoushi و سازوکار KSP/Gradle](docs/keiyoushi-architecture.md)
