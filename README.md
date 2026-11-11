@@ -1,6 +1,8 @@
 # MangOn — افزونه‌های فارسی Mihon
 
-MangOn یک مخزن مستقل از افزونه‌های فارسی سازگار با **Mihon** است. کد منبع در شاخهٔ `main` و خروجی امضاشده در شاخهٔ `repo` نگهداری می‌شود.
+MangOn یک مخزن مستقل و غیررسمی از افزونه‌های فارسی سازگار با **Mihon** است. کد منبع در شاخهٔ `main` و خروجی امضاشده در شاخهٔ `repo` نگهداری می‌شود.
+
+> **هشدار اعتماد:** Mihon هیچ مخزن یا افزونه‌ای ارائه یا تأیید نمی‌کند؛ مستندات رسمی هشدار می‌دهد افزونه‌های شخص ثالث دسترسی کامل به برنامه دارند و ممکن است مخرب باشند. فقط در صورت اعتماد به ناشر، مخزن را اضافه کنید. [راهنمای رسمی Mihon](https://mihon.app/docs/faq/browse/extensions).
 
 ## افزودن مخزن به Mihon
 
@@ -24,17 +26,21 @@ Mihon فهرست افزونه‌ها را از `index.pb` دریافت می‌ک
 
 ## اعتبارسنجی انتشار
 
-**Build و انتشار موفق**
+**Build و انتشار امضاشده موفق**
 
-اجرای اصلی [Build #177](https://github.com/studio1111/MangOn/actions/runs/43054753697) در 2026-11-11 با موفقیت کامل شد:
+آخرین اجرای اصلی [Build #177](https://github.com/studio1111/MangOn/actions/runs/43054753697) در 2026-11-11 با نتیجهٔ `success` کامل شد. این اجرا پس از ادغام اصلاح refresh جزئی و ارتقای toolchain به HEAD جاری Keiyoushi انجام شد.
 
-- ۱۹ آزمون Python برای index، امضا، resolver تصاویر و حفظ state در refresh؛
-- Spotless، `assembleRelease` و `lintRelease` برای هر دو ماژول؛
-- امضای APK و JAR با keystore پایدار و تطابق fingerprint گواهی؛
-- تولید `index.pb` و `repo.json`؛
-- انتشار شاخهٔ `repo` و بررسی زندهٔ descriptor، index و تمام APKها از میزبان عمومی.
+- ۱۹ آزمون Python با موفقیت اجرا شدند؛
+- Spotless، `assembleRelease` و `lintRelease` برای هر دو ماژول فارسی موفق شدند؛
+- keystore پایدار اعتبارسنجی شد و امضای APK و JAR هر دو افزونه با اثرانگشت SHA-256 مورد انتظار تطبیق داشت؛
+- `index.pb` و `repo.json` تولید شدند و در شاخهٔ `repo` منتشر شدند؛
+- workflow فایل‌های میزبانی‌شدهٔ descriptor، index و APKها را از GitHub Raw دوباره دریافت و اعتبارسنجی کرد.
 
-نسخه‌های امضاشده در شاخهٔ `repo` قرار دارند. مخزن فعلی دو افزونهٔ GlobalComix 1.6.2 و ManhwaChi 1.6.8 را ارائه می‌کند. artifact اجرای #177 با شناسهٔ `13870578289` تا 2026-11-18 16:08:27 UTC معتبر است. آزمون نصب و اجرای واقعی روی دستگاه Mihon هنوز انجام نشده است.
+**مبنای ساخت:** [Keiyoushi extensions-source](https://github.com/keiyoushi/extensions-source/commit/d0478bb62bbc485753d2830102aef4e1b87cb336)، Gradle 9.9.0 و Android Gradle Plugin 9.5.1.
+
+artifact با نام `mangon-release-bundle` و شناسهٔ `13870578289` از API تأیید شده و تا **2026-11-18 16:08:27 UTC** معتبر است. این artifact خروجی build است؛ APKهای قابل نصب نیز در شاخهٔ `repo` منتشر شده‌اند.
+
+نسخه‌های امضاشده در [شاخهٔ repo](https://github.com/studio1111/MangOn/tree/repo) قرار دارند. آزمون نصب و اجرای واقعی روی دستگاه Mihon هنوز انجام نشده است؛ موفقیت CI جایگزین آزمون دستگاه نیست.
 
 ## توسعه و معماری
 
